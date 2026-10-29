@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Smart Flow</title>
+<title>Smart Flow – iPad</title>
 <style>
   :root {
     --teal: #0A4D8C;
@@ -37,7 +37,7 @@
     padding-bottom: 80px;
   }
   .app-shell {
-    max-width: 480px;
+    max-width: 1100px;
     margin: 0 auto;
     background: var(--bg);
     min-height: 100vh;
@@ -55,7 +55,12 @@
   }
   .header h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
   .header .sub { font-size: 0.85rem; opacity: 0.9; margin-top: 2px; font-weight: 500; }
-  .container { padding: 16px; padding-bottom: 90px; max-width: 480px; margin: 0 auto; }
+  .container { padding: 20px 24px; padding-bottom: 100px; max-width: none; margin: 0 auto; }
+  #list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
   .btn {
     display: flex;
     align-items: center;
@@ -104,7 +109,7 @@
     background: white;
     border-radius: 18px;
     padding: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     box-shadow: 0 4px 20px rgba(10,77,140,0.08);
     display: flex;
     gap: 14px;
@@ -137,12 +142,13 @@
   .monitor { background: #fff3cd; color: #856404; }
   .attention { background: #f8d7da; color: var(--red); }
   .section-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--teal);
     margin: 20px 0 10px;
+    grid-column: 1 / -1;
   }
   .exec {
     background: #e6f4f4;
@@ -202,7 +208,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 480px;
+    max-width: 1100px;
     background: white;
     border-top: 1px solid var(--border);
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
@@ -212,10 +218,10 @@
   }
   .facility-grid {
     display: grid;
-    grid-template-columns: 24px repeat(20, minmax(36px, 1fr));
-    gap: 3px;
+    grid-template-columns: 28px repeat(20, minmax(42px, 1fr));
+    gap: 4px;
     background: linear-gradient(160deg, #1a3a5c 0%, #0d2847 100%);
-    padding: 10px;
+    padding: 12px;
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     margin: 8px 0;
@@ -230,7 +236,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 700;
     font-family: "SF Pro Display", -apple-system, sans-serif;
     color: #fff;
@@ -238,8 +244,8 @@
     text-align: center;
     padding: 2px;
     line-height: 1.1;
-    min-width: 36px;
-    min-height: 36px;
+    min-width: 42px;
+    min-height: 42px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     transition: transform 0.15s;
   }
@@ -279,6 +285,11 @@
     .no-print { display: none !important; }
   }
   .icon { font-size: 1.4rem; }
+  @media (min-width: 768px) {
+    .photo { width: 90px; height: 90px; }
+    .btn { max-width: 480px; margin-left: auto; margin-right: auto; }
+    .search, select { max-width: 600px; }
+  }
 </style>
 </head>
 <body>
@@ -297,7 +308,8 @@
 <div class="container" id="dashView">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="display:flex;align-items:center;gap:8px;">
-      <button class="info-btn" onclick="editFacilityName()" style="font-size:1.2rem;">+</button>
+      <button class="info-btn" onclick="openAddPet()" style="font-size:1.4rem;background:#0A3D6E;color:#fff;width:40px;height:40px;border-radius:8px;" title="Add Pet">+</button>
+      <button class="info-btn" onclick="startBatchImport()" style="font-size:1.2rem;background:#008B8B;color:#fff;width:40px;height:40px;border-radius:8px;" title="Batch Import from Photo">📸</button>
       <span id="facilityNameDisplay" style="font-weight:700;font-size:1.1rem;color:var(--teal);"></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
@@ -419,17 +431,20 @@ function addCustomBreed() {
     saveCustomBreeds();
   }
   
-if (!userRole) {
-  document.getElementById("mTitle").textContent = "Smart Flow Login";
+function showLoginSplash() {
+  document.getElementById("mTitle").textContent = "Smart Flow";
   document.getElementById("mBody").innerHTML = `
-    <p style="font-size:0.9rem;margin-bottom:12px;">Sign in to access facility records.</p>
-    <button class="btn" onclick="setRole('staff')">Staff</button>
+    <p style="font-size:1rem;margin-bottom:16px;text-align:center;font-weight:600;">Select your role to continue</p>
+    <button class="btn" onclick="setRole('staff')">Associate / Staff</button>
     <button class="btn outline" onclick="promptLogin('manager')">Manager / Subscriber</button>
     <button class="btn outline" onclick="promptLogin('vet')">Veterinarian</button>
-    <p style="font-size:0.75rem;color:#888;margin-top:12px;">For remote multi-device access, cloud backend (Supabase) is recommended. Contact admin to enable.</p>
-    <p style="font-size:0.7rem;color:#aaa;margin-top:16px;text-align:center;">© 2026 Meridian Veterinary Counsel<br>All rights reserved.</p>
+    <p style="font-size:0.75rem;color:#888;margin-top:16px;text-align:center;">Manager & Vet require password.<br>Associate has limited access.</p>
+    <p style="font-size:0.7rem;color:#aaa;margin-top:20px;text-align:center;">© 2026 Meridian Veterinary Counsel<br>All rights reserved.</p>
   `;
   document.getElementById("modal").classList.add("show");
+}
+if (!userRole) {
+  showLoginSplash();
 }
 function promptLogin(role) {
   const pw = prompt(role === 'manager' ? "Manager password:" : "Veterinarian password:");
@@ -440,7 +455,8 @@ function promptLogin(role) {
 function switchRole() {
   localStorage.removeItem("smartflow-role");
   userRole = "";
-  location.reload();
+  closeModal();
+  setTimeout(showLoginSplash, 100);
 }
 populateBreeds();
   const sel = document.getElementById("newBreed");
@@ -784,17 +800,16 @@ function exportAllPets() {
 function openSettings() {
   document.getElementById("mTitle").textContent = "Settings";
   document.getElementById("mBody").innerHTML = `
-    <button class="btn" style="background:#0A3D6E;" onclick="closeModal();openAddPet()">Add Pet</button>
-    <button class="btn" style="background:#008B8B;" onclick="closeModal();openBatchImport()">Batch Import</button>
     <button class="btn" style="background:#008B8B;" onclick="closeModal();showSupplies()">Kennel Supplies</button>
     <button class="btn" style="background:#008B8B;" onclick="closeModal();weeklyReport()">Weekly Report</button>
     <button class="btn outline" onclick="closeModal();openArchived()">Archived Pets</button>
     ${(userRole === "manager" || userRole === "vet") ? '<button class="btn outline" onclick="closeModal();openAuditLog()">Audit Log</button>' : ''}
     <button class="btn outline" onclick="closeModal();openWardSettings()">Define Wards</button>
     <button class="btn outline" onclick="exportAllPets()">Export All Pets</button>
-    <button class="btn outline" onclick="closeModal();contactSupport()">Contact Support</button>
-    <button class="btn outline" onclick="showTerms()">Terms of Use</button>
     <button class="btn outline" onclick="switchRole()">Switch Role</button>
+    <button class="btn outline" onclick="closeModal();contactSupport()">Contact Support</button>
+    <button class="btn outline" onclick="requestFeature()">Request Feature 😉</button>
+    <button class="btn outline" onclick="showTerms()">Terms of Use</button>
   `;
   document.getElementById("modal").classList.add("show");
 }
@@ -2226,18 +2241,16 @@ let inventory = [
   {name:"Metronidazole 50mg Tablet", hasMg:true},
   {name:"Albon 125mg Tablet", hasMg:true},
   {name:"Panacur 1L BTL", hasMg:false},
-  {name:"Panacur 10lb 3 pack", hasMg:false},
   {name:"Rescue 5 GAL", hasMg:false},
   {name:"3ml Syringes Box", hasMg:false},
   {name:"1ml Syringes Box", hasMg:false},
   {name:"Carprofen 25mg Tablet", hasMg:true},
-  {name:"Enrofloxacin 68mg Tablet", hasMg:true},
+  {name:"Enrofloxacin 22.7 mg", hasMg:true},
   {name:"Cough Tablets", hasMg:false},
   {name:"Feline Bravecto", hasMg:false},
   {name:"Otimate 1 BTL", hasMg:false},
   {name:"Nutri-cal", hasMg:false},
   {name:"Dextrose", hasMg:false},
-  {name:"Sterile Diluent", hasMg:false},
   {name:"FVRCP Vaccine Tray", hasMg:false},
   {name:"Pyrantel", hasMg:false},
   {name:"Ponazuril", hasMg:false},
@@ -2245,7 +2258,22 @@ let inventory = [
   {name:"Cerenia", hasMg:true},
   {name:"Revolution", hasMg:false},
   {name:"Pro Pectalin", hasMg:false},
-  {name:"Azithromycin", hasMg:true}
+  {name:"Azithromycin", hasMg:true},
+  {name:"Ophthalmic Triple Abx with Dexamethasone Solution", hasMg:false},
+  {name:"Ophthalmic Triple Abx with Dexamethasone Ointment", hasMg:false},
+  {name:"Ophthalmic Triple Abx Solution (no Dex)", hasMg:false},
+  {name:"Ophthalmic Triple Abx Ointment (no Dex)", hasMg:false},
+  {name:"Animax", hasMg:false},
+  {name:"Giardia Tests 20 count", hasMg:false},
+  {name:"IDEXX Parvo Tests 5 count", hasMg:false},
+  {name:"Clavadrops 62.5 mg/ml", hasMg:true},
+  {name:"E-Collar 10", hasMg:false},
+  {name:"E-Collar 15", hasMg:false},
+  {name:"E-Collar 20", hasMg:false},
+  {name:"E-Collar 25", hasMg:false},
+  {name:"E-Collar 30", hasMg:false},
+  {name:"Forti-Flora Pro Canine", hasMg:false},
+  {name:"Forti-Flora Feline", hasMg:false}
 ];
 let customItems = JSON.parse(localStorage.getItem("smartflow-customitems") || "[]");
 inventory = inventory.concat(customItems);
@@ -2432,6 +2460,11 @@ function contactSupport() {
   const body = encodeURIComponent("Hi,\n\nI need help with Smart Flow.\n\n");
   window.location.href = "mailto:meridianvetcounsel@proton.me?subject=" + subject + "&body=" + body;
 }
+function requestFeature() {
+  const subject = encodeURIComponent("Smart Flow Feature Request");
+  const body = encodeURIComponent("Hi,\n\nI'd like to request the following feature for Smart Flow:\n\n");
+  window.location.href = "mailto:meridianvetcounsel@proton.me?subject=" + subject + "&body=" + body;
+}
 function showDash() {
   window.scrollTo(0, 0);
   document.getElementById("detailView").style.display = "none";
@@ -2499,6 +2532,9 @@ function emailWeekly() {
   a.click();
 }
 function printWeekly() { closeModal(); printFacility(); }
+function startBatchImport() {
+  openBatchImport();
+}
 function openBatchImport() {
   document.getElementById("mTitle").textContent = "Batch Import Pets";
   document.getElementById("mBody").innerHTML = `
