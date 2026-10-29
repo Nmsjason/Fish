@@ -939,8 +939,8 @@ function render() {
       const cls = a.status==="healthy"?"healthy":a.status==="monitor"?"monitor":"attention";
       const txt = a.status==="healthy"?"Healthy":a.status==="monitor"?"Monitor":"Attention";
       const needsPlan = a.status === "monitor" || a.status === "attention";
-      const bang = needsPlan ? `<button class="btn" style="width:auto;padding:8px 12px;margin:0;background:#dc3545;" onclick="event.stopPropagation();openSymptoms(${a.id})">!</button>` : "";
-      html += `<div class="animal-card" onclick="openDetail(${a.id})" ontouchend="event.preventDefault();openDetail(${a.id})" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);">
+      const bang = needsPlan ? `<button class="btn bang-btn" style="width:auto;padding:10px 16px;margin:0;background:#dc3545;font-size:1.1rem;min-width:44px;min-height:44px;" onclick="event.stopPropagation();event.preventDefault();openSymptoms(${a.id})" ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation();event.preventDefault();openSymptoms(${a.id})">!</button>` : "";
+      html += `<div class="animal-card" onclick="if(event.target.closest('.bang-btn'))return;openDetail(${a.id})" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);">
         <img class="photo" src="${a.photo}" alt="">
         <div class="info" style="flex:1;">
           <h3>Ref #${a.ref} · ${a.breed}</h3>
