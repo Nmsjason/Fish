@@ -939,8 +939,8 @@ function render() {
       const cls = a.status==="healthy"?"healthy":a.status==="monitor"?"monitor":"attention";
       const txt = a.status==="healthy"?"Healthy":a.status==="monitor"?"Monitor":"Attention";
       const needsPlan = a.status === "monitor" || a.status === "attention";
-      const bang = needsPlan ? `<button class="btn bang-btn" style="width:auto;padding:10px 16px;margin:0;background:#dc3545;font-size:1.1rem;min-width:44px;min-height:44px;" onclick="event.stopPropagation();event.preventDefault();openSymptoms(${a.id})" ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation();event.preventDefault();openSymptoms(${a.id})">!</button>` : "";
-      html += `<div class="animal-card" onclick="if(event.target.closest('.bang-btn'))return;openDetail(${a.id})" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);">
+      const bang = needsPlan ? `<button class="btn bang-btn" data-id="${a.id}" style="width:auto;padding:10px 16px;margin:0;background:#dc3545;font-size:1.1rem;min-width:44px;min-height:44px;">!</button>` : "";
+      html += `<div class="animal-card" data-id="${a.id}" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);">
         <img class="photo" src="${a.photo}" alt="">
         <div class="info" style="flex:1;">
           <h3>Ref #${a.ref} · ${a.breed}</h3>
@@ -965,6 +965,21 @@ function render() {
     }
   }
   document.getElementById("list").innerHTML = html || "<p style='text-align:center;color:#888;padding:40px 0;'>No animals match the filters.</p>";
+  // Delegated click handling for cards and symptom buttons
+  const listEl = document.getElementById("list");
+  listEl.onclick = function(e) {
+    const bang = e.target.closest(".bang-btn");
+    if (bang) {
+      e.stopPropagation();
+      e.preventDefault();
+      openSymptoms(parseInt(bang.dataset.id));
+      return;
+    }
+    const card = e.target.closest(".animal-card");
+    if (card && card.dataset.id) {
+      openDetail(parseInt(card.dataset.id));
+    }
+  };
   const countEl = document.getElementById("petCount");
   if (countEl) countEl.textContent = animals.length;
   const roleEl = document.getElementById("roleDisplay");
