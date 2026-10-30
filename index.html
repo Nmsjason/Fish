@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Smart Flow – iPad</title>
+<title>Smart Flow</title>
 <style>
   :root {
     --teal: #0A4D8C;
@@ -37,7 +37,7 @@
     padding-bottom: 80px;
   }
   .app-shell {
-    max-width: 1100px;
+    max-width: 480px;
     margin: 0 auto;
     background: var(--bg);
     min-height: 100vh;
@@ -45,22 +45,18 @@
     position: relative;
   }
   .header {
-    background: transparent;
+    background: #041E42 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABWAAAAMACAIAAAAlsVnqAAAAiXpUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYwxDgIxDAT7vOKekDjrtV1T0VHwgbtcIiEhgfh/QaDgmGlWW0w6X66n5fl6jNu9p+ULkapDENgzpj+Kl5aFfa6KnYWgSjZjGOiSYRxTY/v8KIijI/rXyc236kHdAK22RvHVummEN+91ML0BQ+siou79WmMAAAL4aVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIiB4OnhtcHRrPSJBZG9iZSBYTVAgQ29yZSA3LjAtYzAwMCI+CjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIiB4bWxuczp4bWw9Imh0dHA6Ly93d3cudzMub3JnL1hNTC8xOTk4L25hbWVzcGFjZSIgeG1sbnM6SXB0YzR4bXBFeHQ9Imh0dHA6Ly9pcHRjLm9yZy9zdGQvSXB0YzR4bXBFeHQvMjAwOC0wMi0yOS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyI+CiAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgSXB0YzR4bXBFeHQ6RGlnaXRhbFNvdXJjZUZpbGVUeXBlPSJodHRwOi8vY3YuaXB0Yy5vcmcvbmV3c2NvZGVzL2RpZ2l0YWxzb3VyY2V0eXBlL3RyYWluZWRBbGdvcml0aG1pY01lZGlhIiBJcHRjNHhtcEV4dDpEaWdpdGFsU291cmNlVHlwZT0iaHR0cDovL2N2LmlwdGMub3JnL25ld3Njb2Rlcy9kaWdpdGFsc291cmNldHlwZS90cmFpbmVkQWxnb3JpdGhtaWNNZWRpYSIgcGhvdG9zaG9wOkNyZWRpdD0iTWFkZSB3aXRoIEdvb2dsZSBBSSIvPgo8L3JkZjpSREY+CjwveDp4bXBtZXRhPgql3aEKAAAfP2NhQlgAAB8/anVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAHxlqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjNlMzhhZjNmLTE1ZDgtMTA5MS04MTVjLTRjYWE0M2Q5N2JjNgAAABk4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABkIY2JvctKEWQYpogEmGCGCWQM9MIIDOTCCAsCgAwIBAgIUAKghczmEXycQQF4eU4IgBK74LkkwCgYIKoZIzj0EAwMwUTELMAkGA1UEBhMCVVMxEzARBgNVBAoMCkdvb2dsZSBMTEMxLTArBgNVBAMMJEdvb2dsZSBDMlBBIE1lZGlhIFNlcnZpY2VzIDFQIElDQSBHMzAeFw0yNjAzMDMyMzAxNTFaFw0yNzAyMjYyMzAxNTBaMGsxCzAJBgNVBAYTAlVTMRMwEQYDVQQKEwpHb29nbGUgTExDMRwwGgYDVQQLExNHb29nbGUgU3lzdGVtIDEwMjc0MSkwJwYDVQQDEyBHb29nbGUgTWVkaWEgUHJvY2Vzc2luZyBTZXJ2aWNlczBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABArhqcsPxf4rlIUBA5MM2C4zCpmqjU0PlT0XJQZi2U6cPJARC/8Sebsl2BDQA1ESO8pC7rEneM2VAMVTmbpbsr+jggFaMIIBVjAOBgNVHQ8BAf8EBAMCBsAwHwYDVR0lBBgwFgYIKwYBBQUHAwQGCisGAQQBg+heAgEwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUTxQE4TnetdUodey7ibrlGabRY+0wHwYDVR0jBBgwFoAU2nvhvbQsioXgENZrmsdK8frf9jcwbAYIKwYBBQUHAQEEYDBeMCYGCCsGAQUFBzABhhpodHRwOi8vYzJwYS1vY3NwLnBraS5nb29nLzA0BggrBgEFBQcwAoYoaHR0cDovL3BraS5nb29nL2MycGEvbWVkaWEtMXAtaWNhLWczLmNydDAXBgNVHSAEEDAOMAwGCisGAQQBg+heAQEwGQYJKwYBBAGD6F4DBAwGCisGAQQBg+heAwowMwYJKwYBBAGD6F4EBCYMJDAxOWE3YTlmLWNiMmYtN2UyZC1iMjIyLWY4ZTYtY2Y0YjE0Y2Y4ZjE4YQAA") center center / cover no-repeat;
     color: white;
     position: sticky;
     top: 0;
     z-index: 50;
     text-align: center;
     padding: 0;
+    min-height: 140px;
   }
   .header h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
   .header .sub { font-size: 0.85rem; opacity: 0.9; margin-top: 2px; font-weight: 500; }
-  .container { padding: 20px 24px; padding-bottom: 100px; max-width: none; margin: 0 auto; }
-  #list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
-  }
+  .container { padding: 16px; padding-bottom: 90px; max-width: 480px; margin: 0 auto; }
   .btn {
     display: flex;
     align-items: center;
@@ -109,7 +105,7 @@
     background: white;
     border-radius: 18px;
     padding: 14px;
-    margin-bottom: 0;
+    margin-bottom: 12px;
     box-shadow: 0 4px 20px rgba(10,77,140,0.08);
     display: flex;
     gap: 14px;
@@ -142,13 +138,12 @@
   .monitor { background: #fff3cd; color: #856404; }
   .attention { background: #f8d7da; color: var(--red); }
   .section-title {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--teal);
     margin: 20px 0 10px;
-    grid-column: 1 / -1;
   }
   .exec {
     background: #e6f4f4;
@@ -201,6 +196,46 @@
     padding: 20px;
     overflow-y: auto;
   }
+  #loginSplash {
+    position: fixed;
+    inset: 0;
+    background: #041E42;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: white;
+    text-align: center;
+    padding: 24px;
+  }
+  #loginSplash.show { display: flex; }
+  #loginSplash .splash-card {
+    background: rgba(4, 30, 66, 0.92);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 28px 22px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  #loginSplash h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  #loginSplash p { margin: 0 0 20px; opacity: 0.9; }
+  #loginSplash .btn.outline {
+    color: white;
+    border-color: rgba(255,255,255,0.6);
+    background: transparent;
+  }
+  #loginSplash .copyright {
+    margin-top: 24px;
+    font-size: 0.7rem;
+    opacity: 0.6;
+  }
   .score-item { margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 8px; }
   .bottom-bar {
     position: fixed;
@@ -208,7 +243,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 1100px;
+    max-width: 480px;
     background: white;
     border-top: 1px solid var(--border);
     padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
@@ -218,10 +253,10 @@
   }
   .facility-grid {
     display: grid;
-    grid-template-columns: 28px repeat(20, minmax(42px, 1fr));
-    gap: 4px;
+    grid-template-columns: 24px repeat(20, minmax(36px, 1fr));
+    gap: 3px;
     background: linear-gradient(160deg, #1a3a5c 0%, #0d2847 100%);
-    padding: 12px;
+    padding: 10px;
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     margin: 8px 0;
@@ -236,7 +271,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     font-family: "SF Pro Display", -apple-system, sans-serif;
     color: #fff;
@@ -244,8 +279,8 @@
     text-align: center;
     padding: 2px;
     line-height: 1.1;
-    min-width: 42px;
-    min-height: 42px;
+    min-width: 36px;
+    min-height: 36px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     transition: transform 0.15s;
   }
@@ -285,14 +320,20 @@
     .no-print { display: none !important; }
   }
   .icon { font-size: 1.4rem; }
-  @media (min-width: 768px) {
-    .photo { width: 90px; height: 90px; }
-    .btn { max-width: 480px; margin-left: auto; margin-right: auto; }
-    .search, select { max-width: 600px; }
-  }
 </style>
 </head>
 <body>
+<div id="loginSplash">
+  <div class="splash-card">
+    <h1>Smart Flow</h1>
+    <p>Select your role to continue</p>
+    <button class="btn" onclick="setRole('staff')">Associate / Staff</button>
+    <button class="btn outline" onclick="promptLogin('manager')">Manager / Subscriber</button>
+    <button class="btn outline" onclick="promptLogin('vet')">Veterinarian</button>
+    <p style="font-size:0.75rem;opacity:0.75;margin-top:12px;">Manager & Vet require password.<br>Associate has limited access.</p>
+    <div class="copyright">© 2026 Meridian Veterinary Counsel<br>All rights reserved.</div>
+  </div>
+</div>
 <div class="app-shell">
 <div class="header">
   <div style="position:relative; width:100%;">
@@ -390,7 +431,7 @@
     <span class="icon">🗺️</span> Layout
   </button>
 </div>
-<div style="text-align:center;padding:8px 16px 90px;font-size:0.65rem;color:#aaa;background:var(--bg);">
+<div id="appFooter" style="text-align:center;padding:8px 16px 90px;font-size:0.65rem;color:#aaa;background:var(--bg);">
   Smart Flow · © 2026 Meridian Veterinary Counsel · All rights reserved
 </div>
 <input type="file" id="camInput" class="photo-input" accept="image/*" capture="environment" onchange="handlePhoto(this)">
@@ -433,19 +474,20 @@ function addCustomBreed() {
 }
 let userRole = localStorage.getItem("smartflow-role") || "";
 function showLoginSplash() {
-  document.getElementById("mTitle").textContent = "Smart Flow";
-  document.getElementById("mBody").innerHTML = `
-    <p style="font-size:1rem;margin-bottom:16px;text-align:center;font-weight:600;">Select your role to continue</p>
-    <button class="btn" onclick="setRole('staff')">Associate / Staff</button>
-    <button class="btn outline" onclick="promptLogin('manager')">Manager / Subscriber</button>
-    <button class="btn outline" onclick="promptLogin('vet')">Veterinarian</button>
-    <p style="font-size:0.75rem;color:#888;margin-top:16px;text-align:center;">Manager & Vet require password.<br>Associate has limited access.</p>
-    <p style="font-size:0.7rem;color:#aaa;margin-top:20px;text-align:center;">© 2026 Meridian Veterinary Counsel<br>All rights reserved.</p>
-  `;
-  document.getElementById("modal").classList.add("show");
+  document.getElementById("loginSplash").classList.add("show");
+  document.querySelector(".app-shell").style.display = "none";
+  const bar = document.querySelector(".bottom-bar");
+  if (bar) bar.style.display = "none";
+  const footer = document.getElementById("appFooter");
+  if (footer) footer.style.display = "none";
 }
-if (!userRole) {
-  // moved to end of script
+function hideLoginSplash() {
+  document.getElementById("loginSplash").classList.remove("show");
+  document.querySelector(".app-shell").style.display = "block";
+  const bar = document.querySelector(".bottom-bar");
+  if (bar) bar.style.display = "flex";
+  const footer = document.getElementById("appFooter");
+  if (footer) footer.style.display = "block";
 }
 function promptLogin(role) {
   const pw = prompt(role === 'manager' ? "Manager password:" : "Veterinarian password:");
@@ -453,13 +495,11 @@ function promptLogin(role) {
   if (pw === expected) setRole(role);
   else alert("Incorrect password");
 }
-function switchRole() {
+function logout() {
   localStorage.removeItem("smartflow-role");
   userRole = "";
   closeModal();
-  setTimeout(() => {
-    showLoginSplash();
-  }, 150);
+  showLoginSplash();
 }
 populateBreeds();
   const sel = document.getElementById("newBreed");
@@ -662,6 +702,7 @@ function loadFacilityName() {
 function setRole(role) {
   userRole = role;
   localStorage.setItem("smartflow-role", role);
+  hideLoginSplash();
   closeModal();
   if (!localStorage.getItem("smartflow-onboarded")) showOnboarding();
   else showDash();
@@ -808,7 +849,7 @@ function openSettings() {
     ${(userRole === "manager" || userRole === "vet") ? '<button class="btn outline" onclick="closeModal();openAuditLog()">Audit Log</button>' : ''}
     <button class="btn outline" onclick="closeModal();openWardSettings()">Define Wards</button>
     <button class="btn outline" onclick="exportAllPets()">Export All Pets</button>
-    <button class="btn outline" onclick="switchRole()">Switch Role</button>
+    <button class="btn outline" style="color:#dc3545;border-color:#dc3545;" onclick="logout()">Log Out</button>
     <button class="btn outline" onclick="closeModal();contactSupport()">Contact Support</button>
     <button class="btn outline" onclick="requestFeature()">Request Feature 😉</button>
     <button class="btn outline" onclick="showTerms()">Terms of Use</button>
@@ -2570,7 +2611,6 @@ function printWeekly() { closeModal(); printFacility(); }
 function startBatchImport() {
   openBatchImport();
 }
-function openBatchImport() {
   document.getElementById("mTitle").textContent = "Batch Import Pets";
   document.getElementById("mBody").innerHTML = `
     <button class="btn outline" onclick="document.getElementById('batchPhoto').click()">📷 Scan List</button>
@@ -3043,6 +3083,9 @@ populateBreeds();
 render();
 if (!userRole) {
   showLoginSplash();
+} else {
+  hideLoginSplash();
+  showDash();
 }
 </script>
 </body>
