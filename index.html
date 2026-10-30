@@ -496,7 +496,16 @@ const COMMON_BREEDS = [
 "Portuguese Podengo","Pumi","Rat Terrier","Russell Terrier","Russian Toy","Spanish Water Dog","Swedish Lapphund","Thai Ridgeback","Working Kelpie","Mixed Breed"
 ];
 let customBreeds = JSON.parse(localStorage.getItem("smartflow-custombreeds") || "[]");
-function allBreeds() { return [...new Set([...COMMON_BREEDS, ...customBreeds])].sort(); }
+const FELINE_BREEDS = [
+"Domestic Shorthair","Domestic Longhair","Domestic Mediumhair","Siamese","Maine Coon","Ragdoll","Persian","British Shorthair","Sphynx","Bengal",
+"Abyssinian","Scottish Fold","American Shorthair","Russian Blue","Oriental","Birman","Burmese","Devon Rex","Cornish Rex","Himalayan",
+"Norwegian Forest Cat","Turkish Angora","Turkish Van","Siberian","Exotic Shorthair","Manx","Tonkinese","Balinese","Somali","Chartreux",
+"Mixed Breed"
+];
+function allBreeds(species) {
+  const base = (species === "feline") ? FELINE_BREEDS : COMMON_BREEDS;
+  return [...new Set([...base, ...customBreeds])].sort();
+}
 function saveCustomBreeds() { localStorage.setItem("smartflow-custombreeds", JSON.stringify(customBreeds)); }
 function addCustomBreed() {
   const name = prompt("Enter custom breed name:");
@@ -2654,6 +2663,22 @@ function toggleLabelMode() {
   renderLayout();
 }
 
+function assignToKennel(kLabel) {
+  const ref = prompt("Enter Ref # of animal to assign to " + kLabel + ":");
+  if (!ref) return;
+  const a = animals.find(x => x.ref === ref.trim());
+  if (!a) { alert("No animal with Ref #" + ref); return; }
+  const letter = kLabel.replace(/[0-9]/g, "");
+  const num = parseInt(kLabel.replace(/[A-Z]/gi, "")) || 0;
+  a.kennelLetter = letter;
+  a.kennelNum = num;
+  a.section = getWardForKennel(letter);
+  if (!a.kennelHistory) a.kennelHistory = [];
+  a.kennelHistory.push({ kennel: kLabel, at: new Date().toISOString() });
+  saveAnimals();
+  renderLayout();
+  alert("Ref #" + ref + " assigned to " + kLabel);
+}
 function cycleKennel(r, c) {
   const key = r + "-" + c;
   if (labelMode) {
@@ -2678,7 +2703,7 @@ function cycleKennel(r, c) {
     if (side) {
       side.innerHTML = (pets.length
         ? pets.map(p => `<div style="margin:6px 0;"><strong>Ref #${p.ref}</strong><br>${p.breed}<br>Fecal ${p.fecal||"—"} · ${p.status}</div>`).join("")
-        : "No animals assigned to " + kLabel) + `<button class="btn outline" style="margin-top:10px;font-size:0.85rem;" onclick="logClean('${kLabel}')">Log Clean</button><button class="btn outline" style="margin-top:6px;font-size:0.85rem;" onclick="logSupplyMove('${kLabel}')">Log Supply Move</button>`;
+        : "No animals assigned to " + kLabel) + `<button class="btn outline" style="margin-top:10px;font-size:0.85rem;" onclick="assignToKennel('${kLabel}')">Assign Animal</button><button class="btn outline" style="margin-top:6px;font-size:0.85rem;" onclick="logClean('${kLabel}')">Log Clean</button><button class="btn outline" style="margin-top:6px;font-size:0.85rem;" onclick="logSupplyMove('${kLabel}')">Log Supply Move</button>`;
     }
     return;
   }
@@ -3155,7 +3180,7 @@ function openAddPet() {
   const breedOpts = allBreeds().map(b => `<option value="${b}">${b}</option>`).join("");
   document.getElementById("mBody").innerHTML = `
     <input id="newRef" placeholder="Ref #" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;">
-    <select id="newSpecies" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;" onchange="adjustSpecies()">
+    <select id="newSpecies" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;" onchange="refreshBreedList()">
       <option value="canine">Canine</option>
       <option value="feline">Feline</option>
     </select>
