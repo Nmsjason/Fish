@@ -3350,7 +3350,7 @@ function openBatchImport() {
     <input type="file" id="batchPhoto" accept="image/*" capture="environment" style="display:none" onchange="scanBatchList(this)">
     <p style="font-size:0.85rem;color:#666;margin:10px 0;">Or paste one pet per line:<br><code>Ref, Breed, Gender, Age, Microchip, KennelLetter, KennelNum</code></p>
     <textarea id="batchText" rows="10" placeholder="3427, French Bulldog, Male, 16 weeks, 992000002806785, L, 12" style="width:100%;padding:10px;border-radius:8px;font-family:monospace;font-size:0.85rem;"></textarea>
-    <button class="btn" onclick="processBatch()">Create Profiles</button>
+    <button class="btn" onclick="prepareBatchReview()">Review & Approve</button>
   `;
   document.getElementById("modal").classList.add("show");
 }
@@ -3363,77 +3363,135 @@ function scanBatchList(input) {
     try {
       const result = await Tesseract.recognize(e.target.result, "eng");
       const text = result.data.text || "";
-      const lines = text.split("\n").filter(l => l.trim()).slice(0, 30);
-      let rows = lines.map((l, i) => {
-        const p = l.split(/[,\t]/).map(x => x.trim());
-        return `<div style="display:flex;gap:4px;margin:4px 0;font-size:0.8rem;">
-          <input value="${p[0]||''}" placeholder="Ref" style="width:60px;padding:4px;" class="batchRow" data-i="${i}" data-f="ref">
-          <input value="${p[1]||''}" placeholder="Breed" style="flex:1;padding:4px;" class="batchRow" data-i="${i}" data-f="breed">
-          <input value="${p[2]||''}" placeholder="M/F" style="width:40px;padding:4px;" class="batchRow" data-i="${i}" data-f="gender">
-          <input value="${p[3]||''}" placeholder="Age" style="width:60px;padding:4px;" class="batchRow" data-i="${i}" data-f="age">
-        </div>`;
-      }).join("");
-      document.getElementById("mTitle").textContent = "Verify Scanned List";
-      document.getElementById("mBody").innerHTML = `
-        <p style="font-size:0.85rem;color:#666;">Edit each row, then approve:</p>
-        <div id="batchRows">${rows}</div>
-        <button class="btn" onclick="processBatchRows()">Approve & Create Profiles</button>
-      `;
+      const lines = text.split("\n").filter(l => l.trim()).slice(0, 40);
+      showBatchReview(lines.map(l => l.split(/[,\t]/).map(x => x.trim())));
     } catch (err) {
       document.getElementById("mBody").innerHTML = "<p>Could not read the list. Try again or paste manually.</p>";
     }
   };
   reader.readAsDataURL(input.files[0]);
 }
-
-function processBatchRows() {
-  const rows = {};
-  document.querySelectorAll(".batchRow").forEach(el => {
-    const i = el.dataset.i;
-    if (!rows[i]) rows[i] = {};
-    rows[i][el.dataset.f] = el.value;
-  });
-  let added = 0;
-  Object.values(rows).forEach(r => {
-    if (!r.ref) return;
-    animals.push({
-      id: Date.now() + added, ref: r.ref, breed: r.breed || "Unknown",
-      gender: r.gender || "", age: r.age || "", microchip: "",
-      kennelLetter: "A", kennelNum: 1, section: "large",
-      status: "healthy", fecal: 3, entryDate: new Date().toISOString().slice(0,10),
-      photo: "", vaccines: [], diagnoses: [], daily: {}, summary: "New arrival."
-    });
-    added++;
-  });
-  saveAnimals();
-  closeModal();
-  render();
-  alert("Created " + added + " profiles.");
-}
-function processBatch() {
+function prepareBatchReview() {
   const text = document.getElementById("batchText").value.trim();
   if (!text) return;
-  const lines = text.split("\n").filter(l => l.trim());
-  let added = 0;
-  lines.forEach(line => {
-    const parts = line.split(",").map(p => p.trim());
-    if (parts.length < 2) return;
-    const [ref, breed, gender, age, micro, letter, num] = parts;
-    if (!ref) return;
-    const id = Date.now() + Math.floor(Math.random() * 1000) + added;
+  const lines = text.split("\n").filter(l => l.trim()).map(l => l.split(",").map(p => p.trim()));
+  showBatchReview(lines);
+}
+let batchQueue = [];
+let batchIndex = 0;
+let batchAdded = 0;
+let batchUpdated = 0;
+function showBatchReview(rows) {
+  batchQueue = rows.filter(r => r && r[0]);
+  batchIndex = 0;
+  batchAdded = 0;
+  batchUpdated = 0;
+  if (!batchQueue.length) {
+    document.getElementById("mBody").innerHTML = "<p>No pets found to review.</p>";
+    return;
+  }
+  renderBatchOne();
+}
+function renderBatchOne() {
+  if (batchIndex >= batchQueue.length) {
+    saveAnimals();
+    ensureAnimalsOnMap();
+    closeModal();
+    render();
+    alert(`Batch complete.\nCreated: ${batchAdded}\nUpdated/merged: ${batchUpdated}\n\nKennels placed on layout. Pets stay until Forever Home.`);
+    return;
+  }
+  const p = batchQueue[batchIndex];
+  const [ref, breed, gender, age, micro, letter, num] = p;
+  const breeds = allBreeds();
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const breedOpts = breeds.map(b => `<option value="${b}" ${b === breed ? "selected" : ""}>${b}</option>`).join("");
+  const letterOpts = letters.map(L => `<option value="${L}" ${L === (letter||"").toUpperCase() ? "selected" : ""}>${L}</option>`).join("");
+  const total = batchQueue.length;
+  document.getElementById("mTitle").textContent = `Review Chart ${batchIndex + 1} of ${total}`;
+  document.getElementById("mBody").innerHTML = `
+    <p style="font-size:0.85rem;color:#666;margin-bottom:12px;">Approve this chart, then the next one will appear. All fields are structured inputs.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <label>Ref #</label>
+      <input id="br-ref" value="${ref||""}" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;">
+      <label>Breed</label>
+      <select id="br-breed" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;"><option value="">Select breed…</option>${breedOpts}</select>
+      <label>Sex</label>
+      <select id="br-gender" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;">
+        <option value="">Select</option>
+        <option value="Male" ${gender==="Male"?"selected":""}>Male</option>
+        <option value="Female" ${gender==="Female"?"selected":""}>Female</option>
+      </select>
+      <label>Age</label>
+      <input id="br-age" value="${age||""}" placeholder="e.g. 16 weeks" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;">
+      <label>Microchip</label>
+      <input id="br-micro" value="${micro||""}" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;">
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label>Kennel Letter</label>
+          <select id="br-letter" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;"><option value="">Select</option>${letterOpts}</select>
+        </div>
+        <div style="flex:1;">
+          <label>Kennel #</label>
+          <input id="br-num" type="number" min="1" max="50" value="${num||""}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem;">
+        </div>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:16px;" onclick="approveOneAndNext()">Approve & Next</button>
+    <button class="btn outline" onclick="skipOne()">Skip This One</button>
+    <button class="btn outline" style="color:#dc3545;border-color:#dc3545;" onclick="cancelBatch()">Cancel Batch</button>
+  `;
+}
+function approveOneAndNext() {
+  const ref = document.getElementById("br-ref").value.trim();
+  if (!ref) { alert("Ref # is required"); return; }
+  const breed = document.getElementById("br-breed").value || "Unknown";
+  const gender = document.getElementById("br-gender").value || "";
+  const age = document.getElementById("br-age").value.trim();
+  const micro = document.getElementById("br-micro").value.trim();
+  const letter = (document.getElementById("br-letter").value || "A").toUpperCase();
+  const num = parseInt(document.getElementById("br-num").value) || 1;
+  const existing = animals.find(a => a.ref === ref);
+  if (existing) {
+    existing.breed = breed;
+    existing.gender = gender;
+    existing.age = age;
+    existing.microchip = micro;
+    existing.kennelLetter = letter;
+    existing.kennelNum = num;
+    existing.section = getWardForKennel(letter);
+    batchUpdated++;
+  } else {
     animals.push({
-      id, ref, breed: breed || "Unknown", gender: gender || "", age: age || "",
-      microchip: micro || "", kennelLetter: (letter || "A").toUpperCase(), kennelNum: parseInt(num) || 1,
-      section: getWardForKennel((letter || "A").toUpperCase()),
-      status: "healthy", fecal: 3, entryDate: new Date().toISOString().slice(0,10),
-      photo: "", vaccines: [], diagnoses: [], daily: {}, summary: "New arrival."
+      id: Date.now() + Math.floor(Math.random() * 10000) + batchAdded,
+      ref, breed, gender, age, microchip: micro,
+      kennelLetter: letter, kennelNum: num,
+      section: getWardForKennel(letter),
+      status: "healthy", fecal: 3,
+      entryDate: new Date().toISOString().slice(0,10),
+      photo: "", vaccines: [], diagnoses: [], daily: {}, summary: "New arrival from batch."
     });
-    added++;
-  });
+    batchAdded++;
+  }
   saveAnimals();
+  ensureAnimalsOnMap();
+  batchIndex++;
+  renderBatchOne();
+}
+function skipOne() {
+  batchIndex++;
+  renderBatchOne();
+}
+function cancelBatch() {
+  if (batchAdded || batchUpdated) {
+    saveAnimals();
+    ensureAnimalsOnMap();
+    render();
+  }
+  batchQueue = [];
+  batchIndex = 0;
   closeModal();
-  render();
-  alert("Imported " + added + " pets.");
+  alert(batchAdded || batchUpdated ? `Batch stopped.\nCreated: ${batchAdded}\nUpdated: ${batchUpdated}\nAlready-approved pets stay on the dashboard and layout.` : "Batch cancelled. No changes made.");
 }
 function openAddPet() {
   document.getElementById("mTitle").textContent = "Add New Pet";
