@@ -199,7 +199,8 @@
   #loginSplash {
     position: fixed;
     inset: 0;
-    background: #041E42;
+    background: #041E42 center center / cover no-repeat;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABWAAAAMACAIAAAAlsVnqAAAAiXpUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYwxDgIxDAT7vOKekDjrtV1T0VHwgbtcIiEhgfh/QaDgmGlWW0w6X66n5fl6jNu9p+ULkapDENgzpj+Kl5aFfa6KnYWgSjZjGOiSYRxTY/v8KIijI/rXyc236kHdAK22RvHVummEN+91ML0BQ+siou79WmMAAAL4aVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIiB4OnhtcHRrPSJBZG9iZSBYTVAgQ29yZSA3LjAtYzAwMCI+CjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIiB4bWxuczp4bWw9Imh0dHA6Ly93d3cudzMub3JnL1hNTC8xOTk4L25hbWVzcGFjZSIgeG1sbnM6SXB0YzR4bXBFeHQ9Imh0dHA6Ly9pcHRjLm9yZy9zdGQvSXB0YzR4bXBFeHQvMjAwOC0wMi0yOS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyI+CiAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgSXB0YzR4bXBFeHQ6RGlnaXRhbFNvdXJjZUZpbGVUeXBlPSJodHRwOi8vY3YuaXB0Yy5vcmcvbmV3c2NvZGVzL2RpZ2l0YWxzb3VyY2V0eXBlL3RyYWluZWRBbGdvcml0aG1pY01lZGlhIiBJcHRjNHhtcEV4dDpEaWdpdGFsU291cmNlVHlwZT0iaHR0cDovL2N2LmlwdGMub3JnL25ld3Njb2Rlcy9kaWdpdGFsc291cmNldHlwZS90cmFpbmVkQWxnb3JpdGhtaWNNZWRpYSIgcGhvdG9zaG9wOkNyZWRpdD0iTWFkZSB3aXRoIEdvb2dsZSBBSSIvPgo8L3JkZjpSREY+CjwveDp4bXBtZXRhPgql3aEKAAAfP2NhQlgAAB8/anVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAHxlqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjNlMzhhZjNmLTE1ZDgtMTA5MS04MTVjLTRjYWE0M2Q5N2JjNgAAABk4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABkIY2JvctKEWQYpogEmGCGCWQM9MIIDOTCCAsCgAwIBAgIUAKghczmEXycQQF4eU4IgBK74LkkwCgYIKoZIzj0EAwMwUTELMAkGA1UEBhMCVVMxEzARBgNVBAoMCkdvb2dsZSBMTEMxLTArBgNVBAMMJEdvb2dsZSBDMlBBIE1lZGlhIFNlcnZpY2VzIDFQIElDQSBHMzAeFw0yNjAzMDMyMzAxNTFaFw0yNzAyMjYyMzAxNTBaMGsxCzAJBgNVBAYTAlVTMRMwEQYDVQQKEwpHb29nbGUgTExDMRwwGgYDVQQLExNHb29nbGUgU3lzdGVtIDEwMjc0MSkwJwYDVQQDEyBHb29nbGUgTWVkaWEgUHJvY2Vzc2luZyBTZXJ2aWNlczBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABArhqcsPxf4rlIUBA5MM2C4zCpmqjU0PlT0XJQZi2U6cPJARC/8Sebsl2BDQA1ESO8pC7rEneM2VAMVTmbpbsr+jggFaMIIBVjAOBgNVHQ8BAf8EBAMCBsAwHwYDVR0lBBgwFgYIKwYBBQUHAwQGCisGAQQBg+heAgEwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUTxQE4TnetdUodey7ibrlGabRY+0wHwYDVR0jBBgwFoAU2nvhvbQsioXgENZrmsdK8frf9jcwbAYIKwYBBQUHAQEEYDBeMCYGCCsGAQUFBzABhhpodHRwOi8vYzJwYS1vY3NwLnBraS5nb29nLzA0BggrBgEFBQcwAoYoaHR0cDovL3BraS5nb29nL2MycGEvbWVkaWEtMXAtaWNhLWczLmNydDAXBgNVHSAEEDAOMAwGCisGAQQBg+heAQEwGQYJKwYBBAGD6F4DBAwGCisGAQQBg+heAwowMwYJKwYBBAGD6F4EBCYMJDAxOWE3YTlmLWNiMmYtN2UyZC1iMjIyLWY4ZTYtY2Y0YjE0Y2Y4ZjE4YQAA");
     z-index: 200;
     display: none;
     align-items: center;
@@ -211,13 +212,44 @@
   }
   #loginSplash.show { display: flex; }
   #loginSplash .splash-card {
-    background: rgba(4, 30, 66, 0.92);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px;
-    padding: 28px 22px;
+    background: rgba(10, 25, 47, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 28px;
+    padding: 36px 28px 28px;
     max-width: 380px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    width: 90%;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  #loginSplash .splash-card h1 {
+    margin: 0 0 4px;
+    font-size: 1.75rem;
+    font-weight: 650;
+    letter-spacing: -0.6px;
+  }
+  #loginSplash .splash-card p.subtitle {
+    margin: 0 0 28px;
+    font-size: 0.92rem;
+    opacity: 0.75;
+    font-weight: 400;
+  }
+  #loginSplash .splash-card .btn {
+    border-radius: 14px;
+    padding: 15px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    box-shadow: none;
+  }
+  #loginSplash .splash-card .btn + .btn { margin-top: 10px; }
+  #loginSplash .splash-card .btn.outline {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    color: white;
+  }
+  #loginSplash .splash-card .btn.outline:active {
+    background: rgba(255,255,255,0.08);
   }
   #loginSplash h1 {
     margin: 0 0 8px;
@@ -324,14 +356,15 @@
 </head>
 <body>
 <div id="loginSplash">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABWAAAAMACAIAAAAlsVnqAAAAiXpUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYwxDgIxDAT7vOKekDjrtV1T0VHwgbtcIiEhgfh/QaDgmGlWW0w6X66n5fl6jNu9p+ULkapDENgzpj+Kl5aFfa6KnYWgSjZjGOiSYRxTY/v8KIijI/rXyc236kHdAK22RvHVummEN+91ML0BQ+siou79WmMAAAL4aVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIiB4OnhtcHRrPSJBZG9iZSBYTVAgQ29yZSA3LjAtYzAwMCI+CjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOmV4aWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vZXhpZi8xLjAvIiB4bWxuczp4bWw9Imh0dHA6Ly93d3cudzMub3JnL1hNTC8xOTk4L25hbWVzcGFjZSIgeG1sbnM6SXB0YzR4bXBFeHQ9Imh0dHA6Ly9pcHRjLm9yZy9zdGQvSXB0YzR4bXBFeHQvMjAwOC0wMi0yOS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyI+CiAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgSXB0YzR4bXBFeHQ6RGlnaXRhbFNvdXJjZUZpbGVUeXBlPSJodHRwOi8vY3YuaXB0Yy5vcmcvbmV3c2NvZGVzL2RpZ2l0YWxzb3VyY2V0eXBlL3RyYWluZWRBbGdvcml0aG1pY01lZGlhIiBJcHRjNHhtcEV4dDpEaWdpdGFsU291cmNlVHlwZT0iaHR0cDovL2N2LmlwdGMub3JnL25ld3Njb2Rlcy9kaWdpdGFsc291cmNldHlwZS90cmFpbmVkQWxnb3JpdGhtaWNNZWRpYSIgcGhvdG9zaG9wOkNyZWRpdD0iTWFkZSB3aXRoIEdvb2dsZSBBSSIvPgo8L3JkZjpSREY+CjwveDp4bXBtZXRhPgql3aEKAAAfP2NhQlgAAB8/anVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAHxlqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjNlMzhhZjNmLTE1ZDgtMTA5MS04MTVjLTRjYWE0M2Q5N2JjNgAAABk4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABkIY2JvctKEWQYpogEmGCGCWQM9MIIDOTCCAsCgAwIBAgIUAKghczmEXycQQF4eU4IgBK74LkkwCgYIKoZIzj0EAwMwUTELMAkGA1UEBhMCVVMxEzARBgNVBAoMCkdvb2dsZSBMTEMxLTArBgNVBAMMJEdvb2dsZSBDMlBBIE1lZGlhIFNlcnZpY2VzIDFQIElDQSBHMzAeFw0yNjAzMDMyMzAxNTFaFw0yNzAyMjYyMzAxNTBaMGsxCzAJBgNVBAYTAlVTMRMwEQYDVQQKEwpHb29nbGUgTExDMRwwGgYDVQQLExNHb29nbGUgU3lzdGVtIDEwMjc0MSkwJwYDVQQDEyBHb29nbGUgTWVkaWEgUHJvY2Vzc2luZyBTZXJ2aWNlczBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABArhqcsPxf4rlIUBA5MM2C4zCpmqjU0PlT0XJQZi2U6cPJARC/8Sebsl2BDQA1ESO8pC7rEneM2VAMVTmbpbsr+jggFaMIIBVjAOBgNVHQ8BAf8EBAMCBsAwHwYDVR0lBBgwFgYIKwYBBQUHAwQGCisGAQQBg+heAgEwDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUTxQE4TnetdUodey7ibrlGabRY+0wHwYDVR0jBBgwFoAU2nvhvbQsioXgENZrmsdK8frf9jcwbAYIKwYBBQUHAQEEYDBeMCYGCCsGAQUFBzABhhpodHRwOi8vYzJwYS1vY3NwLnBraS5nb29nLzA0BggrBgEFBQcwAoYoaHR0cDovL3BraS5nb29nL2MycGEvbWVkaWEtMXAtaWNhLWczLmNydDAXBgNVHSAEEDAOMAwGCisGAQQBg+heAQEwGQYJKwYBBAGD6F4DBAwGCisGAQQBg+heAwowMwYJKwYBBAGD6F4EBCYMJDAxOWE3YTlmLWNiMmYtN2UyZC1iMjIyLWY4ZTYtY2Y0YjE0Y2Y4ZjE4YQAA" alt="Smart Flow" style="width:220px;height:auto;margin-bottom:24px;border-radius:16px;">
   <div class="splash-card">
     <h1>Smart Flow</h1>
-    <p>Select your role to continue</p>
+    <p class="subtitle">Sign in to continue</p>
     <button class="btn" onclick="setRole('staff')">Associate / Staff</button>
     <button class="btn outline" onclick="promptLogin('manager')">Manager / Subscriber</button>
     <button class="btn outline" onclick="promptLogin('vet')">Veterinarian</button>
-    <p style="font-size:0.75rem;opacity:0.75;margin-top:12px;">Manager & Vet require password.<br>Associate has limited access.</p>
-    <div class="copyright">© 2026 Meridian Veterinary Counsel<br>All rights reserved.</div>
+    <p style="font-size:0.72rem;opacity:0.55;margin:22px 0 0;letter-spacing:0.2px;">Manager & Vet require a password</p>
+    <div class="copyright">© 2026 Meridian Veterinary Counsel</div>
   </div>
 </div>
 <div class="app-shell">
@@ -3081,12 +3114,10 @@ function handlePhoto(input) {
 }
 populateBreeds();
 render();
-if (!userRole) {
-  showLoginSplash();
-} else {
-  hideLoginSplash();
-  showDash();
-}
+// Clear any saved role so splash always shows on load (for testing)
+localStorage.removeItem("smartflow-role");
+userRole = "";
+showLoginSplash();
 </script>
 </body>
 </html>
