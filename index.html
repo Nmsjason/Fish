@@ -1572,18 +1572,11 @@ function openDetail(id) {
       <div style="font-size:0.8rem;color:#666;margin-top:4px;">Updates in real time on dashboard and layout. Auto-adjusts with certain diagnoses.</div>
     </div>
     <div class="exec"><strong>At A Glance</strong><br>${buildSummary(a)}</div>
-    <div class="card"><h3>Kennel Assignment</h3>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <select id="kennelLetter" onchange="updateKennel()">
-          ${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<option ${a.kennelLetter===l?"selected":""}>${l}</option>`).join("")}
-        </select>
-        <select id="kennelNum" onchange="updateKennel()">
-          ${Array.from({length:51},(_,i)=>`<option ${a.kennelNum===i?"selected":""}>${i}</option>`).join("")}
-        </select>
-      </div>
+    <div class="card"><h3>Kennel Assignment <button class="info-btn" style="float:right;font-size:1.1rem;" onclick="openAssignKennel()">+</button></h3>
       <div style="margin-top:8px;">Current: ${a.kennelLetter}${a.kennelNum} (${a.section})</div>
       ${cageMates.length ? `<div><strong>Cage mates:</strong> ${cageMates.map(m => `Ref #${m.ref}`).join(", ")}</div>` : ""}
-      ${(a.kennelHistory||[]).length ? `<div style="margin-top:8px;"><strong>Previous kennels:</strong><br>${a.kennelHistory.map(h => `<span style="color:var(--teal);cursor:pointer;text-decoration:underline;" onclick="showKennelHistory('${h.kennel}')">${h.kennel}</span> (until ${h.until})`).join("<br>")}</div>` : ""}
+      <div style="margin-top:12px;"><strong>Assignment History</strong></div>
+      <div id="kennelHistoryList">${renderKennelHistory(a)}</div>
       ${a.daily?.concerns === "Possible contact" ? `<div style="margin-top:8px;padding:8px;background:#fff3cd;border-radius:6px;border-left:4px solid #ffc107;"><strong style="color:#856404;">⚠ Possible Contact</strong><br><span style="font-size:0.85rem;">Monitor for symptoms. Cage mates: ${cageMates.map(m=>m.ref).join(", ")||"none"}</span></div>` : ""}
     </div>
     <div class="card"><h3>Identification</h3>Microchip: ${a.microchip}<br>Gender: ${a.gender} · Age: ${a.age}<br>Section: ${a.section}</div>
@@ -2070,6 +2063,77 @@ function saveAnno() {
 }
 
 
+function openAssignKennel() {
+  if (!curr) return;
+  document.getElementById("mTitle").textContent = "Assign Kennel";
+  document.getElementById("mBody").innerHTML = `
+    <div style="display:flex;gap:10px;margin:10px 0;">
+      <select id="newKennelLetter" style="flex:1;padding:10px;border-radius:8px;">
+        ${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<option ${curr.kennelLetter===l?"selected":""}>${l}</option>`).join("")}
+      </select>
+      <select id="newKennelNum" style="flex:1;padding:10px;border-radius:8px;">
+        ${Array.from({length:51},(_,i)=>`<option ${curr.kennelNum===i?"selected":""}>${i}</option>`).join("")}
+      </select>
+    </div>
+    <button class="btn outline" onclick="document.getElementById('newKennelLetter').value='I';">Set Isolation (I)</button>
+    <button class="btn" style="margin-top:10px;" onclick="saveKennelAssignment()">Save Assignment</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+function saveKennelAssignment() {
+  if (!curr) return;
+  const letter = document.getElementById("newKennelLetter").value;
+  const num = parseInt(document.getElementById("newKennelNum").value);
+  if (curr.kennelLetter && curr.kennelNum) {
+    if (!curr.kennelHistory) curr.kennelHistory = [];
+    const prev = curr.kennelLetter + curr.kennelNum;
+    if (prev !== letter + num) {
+      curr.kennelHistory.push({ kennel: prev, until: new Date().toLocaleDateString() });
+    }
+  }
+  curr.kennelLetter = letter;
+  curr.kennelNum = num;
+  curr.section = getWardForKennel(letter);
+  saveAnimals();
+  closeModal();
+  openDetail(curr.id);
+}
+function getSymptomColor(m) {
+  if ((m.diagnoses||[]).some(d => !d.cleared && /parvo/i.test(d.name))) return "#e74c3c";
+  if ((m.diagnoses||[]).some(d => !d.cleared && /giardia/i.test(d.name))) return "#27ae60";
+  if ((m.diagnoses||[]).some(d => !d.cleared && /uri/i.test(d.name))) return "#3498db";
+  if (m.fecal >= 6) return "#9b59b6";
+  if (m.status === "attention") return "#e74c3c";
+  return null;
+}
+function renderKennelHistory(a) {
+  const history = a.kennelHistory || [];
+  if (!history.length) return "<div style='color:#666;font-size:0.85rem;'>No previous assignments</div>";
+  return history.map(h => {
+    const mates = animals.filter(m => (m.kennelLetter + m.kennelNum) === h.kennel && m.ref !== a.ref);
+    const color = mates.map(getSymptomColor).find(c => c) || null;
+    const bg = color ? color + "22" : "#f8f9fa";
+    const border = color ? `border-left:4px solid ${color};` : "";
+    return `<div style="padding:6px 8px;margin:4px 0;background:${bg};${border}border-radius:6px;cursor:pointer;" onclick="showKennelMates('${h.kennel}')">
+      <strong>${h.kennel}</strong> until ${h.until} ${color?'<span style="color:'+color+';">●</span>':''}
+    </div>`;
+  }).join("");
+}
+function showKennelMates(kennel) {
+  const mates = animals.filter(m => (m.kennelLetter + m.kennelNum) === kennel);
+  const rows = mates.map(m => {
+    const color = getSymptomColor(m);
+    const symptoms = [];
+    if (m.status === "attention") symptoms.push("Attention");
+    if (m.fecal >= 6) symptoms.push("Diarrhea");
+    (m.diagnoses||[]).filter(d => !d.cleared).forEach(d => symptoms.push(d.name));
+    const style = color ? `background:${color}22;border-left:4px solid ${color};` : "";
+    return `<div style="padding:6px;margin:4px 0;border-radius:4px;${style}">Ref #${m.ref} (${m.breed}) ${symptoms.length ? '· ' + symptoms.join(", ") : ""}</div>`;
+  }).join("") || "<div>No mates found</div>";
+  document.getElementById("mTitle").textContent = "Kennel " + kennel + " Mates";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("modal").classList.add("show");
+}
 function showKennelHistory(kennel) {
   const letter = kennel.charAt(0);
   const num = parseInt(kennel.slice(1));
@@ -2081,6 +2145,13 @@ function showKennelHistory(kennel) {
   document.getElementById("mTitle").textContent = "Kennel " + kennel + " History";
   document.getElementById("mBody").innerHTML = `<p>Animals housed in or previously in this kennel:</p><div>${list}</div>`;
   document.getElementById("modal").classList.add("show");
+}
+function assignIsolation() {
+  if (!curr) return;
+  curr.section = "isolation";
+  curr.kennelLetter = "I";
+  saveAnimals();
+  openDetail(curr.id);
 }
 function updateKennel() {
   if (!curr) return;
