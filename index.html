@@ -397,6 +397,7 @@
   </div>
 
   <div id="alertBadges" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;"></div>
+  <div id="txBanner" style="display:none;background:#e74c3c;color:#fff;padding:10px 12px;border-radius:8px;margin-bottom:8px;font-size:0.9rem;font-weight:600;text-align:center;"></div>
   <div id="exposureStrip" style="display:none;background:#fff3cd;padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;cursor:pointer;" onclick="showExposedList()"></div>
   <div id="cleaningGapStrip" style="display:none;background:#f8d7da;padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;cursor:pointer;" onclick="showCleaningGaps()"></div>
   <div id="outbreakFlag" style="display:none;background:#f8d7da;padding:10px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;"></div>
@@ -552,11 +553,26 @@ function askPassword(role) {
 function logout() {
   localStorage.removeItem("smartflow-role");
   userRole = "";
+  auditUnlocked = false;
   closeModal();
   document.getElementById("dashView").style.display = "none";
   document.getElementById("detailView").style.display = "none";
   document.getElementById("layoutView").style.display = "none";
   showLoginSplash();
+}
+function refreshBreedList() {
+  const species = document.getElementById("newSpecies")?.value || "canine";
+  const sel = document.getElementById("newBreed");
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Select breed…</option>';
+  allBreeds(species).forEach(b => {
+    const opt = document.createElement("option");
+    opt.value = b;
+    opt.textContent = b;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 function populateBreeds() {
   const sel = document.getElementById("newBreed");
@@ -582,7 +598,31 @@ let animals = [
 ];
 
 // --- Sick Patient / Master Sheet ---
-let masterSheet = JSON.parse(localStorage.getItem("smartflow-mastersheet") || "[]");
+let pendingTx = JSON.parse(localStorage.getItem("smartflow-pendingtx") || "[]");
+function flagNewTreatment(ref) {
+  if (!pendingTx.includes(ref)) pendingTx.push(ref);
+  localStorage.setItem("smartflow-pendingtx", JSON.stringify(pendingTx));
+  updateTxBanner();
+}
+function clearTreatment(ref) {
+  pendingTx = pendingTx.filter(r => r !== ref);
+  localStorage.setItem("smartflow-pendingtx", JSON.stringify(pendingTx));
+  updateTxBanner();
+}
+function updateTxBanner() {
+  const el = document.getElementById("txBanner");
+  if (!el) return;
+  if (pendingTx.length) {
+    el.style.display = "block";
+    el.textContent = "New treatment plan listed for Ref # " + pendingTx.join(", ");
+  } else {
+    el.style.display = "none";
+  }
+}
+function markFirstDose(ref) {
+  clearTreatment(ref);
+  alert("First dose recorded for Ref #" + ref + ". Banner cleared.");
+}
 
 function saveMaster() {
   localStorage.setItem("smartflow-mastersheet", JSON.stringify(masterSheet));
@@ -626,7 +666,7 @@ function addToMaster(id) {
     };
     masterSheet = masterSheet.filter(e => e.ref !== a.ref);
     masterSheet.push(entry);
-    localStorage.setItem("smartflow-master", JSON.stringify(masterSheet));
+    localStorage.setItem("smartflow-mastersheet", JSON.stringify(masterSheet));
     closeModal();
     alert("Added to Master Sheet");
   };
@@ -777,9 +817,13 @@ function getWardForKennel(letter) {
 }
 
 let auditPassword = localStorage.getItem("smartflow-auditpw") || "123";
+let auditUnlocked = false;
 function openAuditLog() {
-  const pw = prompt("Enter admin password to view audit log:");
-  if (pw !== auditPassword) { alert("Incorrect password."); return; }
+  if (!auditUnlocked) {
+    const pw = prompt("Enter admin password to view audit log:");
+    if (pw !== auditPassword) { alert("Incorrect password."); return; }
+    auditUnlocked = true;
+  }
   document.getElementById("mTitle").textContent = "Audit Log";
   document.getElementById("mBody").innerHTML = `
     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -1049,7 +1093,6 @@ function showTerms() {
       <p>This tool is provided for authorized facility use only. Medical and operational data entered remains the responsibility of the facility and its authorized users.</p>
       <p style="margin-top:12px;font-size:0.8rem;color:#666;">By using Smart Flow you agree to these terms.</p>
     </div>
-    <button class="btn" onclick="closeModal()">Close</button>
   `;
   document.getElementById("modal").classList.add("show");
 }
@@ -1102,25 +1145,20 @@ function populateBreeds() {
   }
   const newSel = document.getElementById("newBreed");
   if (newSel) {
+    const species = document.getElementById("newSpecies")?.value || "canine";
     const cur = newSel.value;
     newSel.innerHTML = '<option value="">Select breed…</option>';
-    breeds.forEach(b => {
+    allBreeds(species).forEach(b => {
       const opt = document.createElement("option");
       opt.value = b; opt.textContent = b;
       newSel.appendChild(opt);
     });
-    if (cur) newSel.value = cur;
+    if ([...newSel.options].some(o => o.value === cur)) newSel.value = cur;
   }
-  return; // original loop removed
-  breeds.forEach(b => {
-    const opt = document.createElement("option");
-    opt.value = b;
-    opt.textContent = b;
-    sel.appendChild(opt);
-  });
 }
 
 function render() {
+  updateTxBanner();
   const flags = typeof checkOutbreak === "function" ? checkOutbreak() : [];
   const flagEl = document.getElementById("outbreakFlag");
   if (flagEl && flags.length) {
@@ -1632,7 +1670,7 @@ function showCleaningHistory() {
       <strong>${e.initials}</strong> · ${e.kennel} · ${e.at}
     </div>`).join("") || "<p>No cleaning entries</p>";
   document.getElementById("mTitle").textContent = "Cleaning History";
-  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("mBody").innerHTML = rows;
   document.getElementById("modal").classList.add("show");
 }
 function showCleaningDetail(at) {
@@ -1675,7 +1713,7 @@ function showPlaytimeHistory() {
       Ref #${p.ref} · ${p.initials}<br>${p.start} – ${p.end || "ongoing"}
     </div>`).join("") || "<p>No playtime entries</p>";
   document.getElementById("mTitle").textContent = "Playtime History";
-  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("mBody").innerHTML = rows;
   document.getElementById("modal").classList.add("show");
 }
 // Isolation checklist removed
@@ -1841,7 +1879,9 @@ function openDetail(id) {
     <div class="card"><h3>Diagnoses 
       <button class="info-btn" style="float:right;font-size:1.1rem;margin-left:6px;" onclick="openAddDiag()">+</button>
       <button class="info-btn" style="float:right;font-size:0.75rem;padding:4px 8px;" onclick="openAddMed()">+ Med</button>
-    </h3>${diags}</div>
+    </h3>${diags}
+      ${pendingTx.includes(a.ref) ? `<button class="btn" style="margin-top:8px;background:#27ae60;" onclick="markFirstDose('${a.ref}');openDetail(${a.id});">First Dose Given</button>` : ""}
+    </div>
     <div class="card"><h3>Tracking <button class="info-btn" style="float:right;font-size:0.9rem;" onclick="showContactChain()">Chain</button></h3>
       <button class="btn outline" style="font-size:0.85rem;padding:6px 10px;margin:2px;" onclick="isolationChecklist()">Isolation Checklist</button>
       <button class="btn outline" style="font-size:0.85rem;padding:6px 10px;margin:2px;" onclick="showSharedSupplies()">Shared Supplies</button>
@@ -2088,6 +2128,7 @@ function saveMed() {
     curr.diagnoses.push({ name: "Medication only", date: new Date().toISOString().split("T")[0], meds: [med], resp: "" });
   }
   saveAnimals();
+  flagNewTreatment(curr.ref);
   closeModal();
   openDetail(curr.id);
 }
@@ -2247,6 +2288,32 @@ function saveDiagnostic() {
   window.pendingDiagPhoto = "";
   saveAnimals();
   closeModal();
+  if (/positive/i.test(result)) {
+    const exists = masterSheet.find(e => e.ref === curr.ref);
+    if (exists) {
+      if (!exists.diagnostics) exists.diagnostics = [];
+      exists.diagnostics.push({ test, result, datetime: datetime.replace("T", " ") });
+      localStorage.setItem("smartflow-mastersheet", JSON.stringify(masterSheet));
+      alert("Positive result confirmed. Already on Master Vet Sheet.");
+    } else {
+      const entry = {
+        ref: curr.ref,
+        breed: curr.breed,
+        age: curr.age,
+        weight: curr.weight || "",
+        gender: curr.gender,
+        kennel: (curr.kennelLetter||"") + (curr.kennelNum||""),
+        symptoms: [test + ": " + result],
+        diagnostics: [{ test, result, datetime: datetime.replace("T", " ") }],
+        date: new Date().toLocaleDateString()
+      };
+      masterSheet.push(entry);
+      localStorage.setItem("smartflow-mastersheet", JSON.stringify(masterSheet));
+      if (confirm("Positive diagnostic added. Add to Master Vet Sheet for treatment plans?")) {
+        alert("Added to Master Vet Sheet. Open Vet Sheet to enter treatment plan.");
+      }
+    }
+  }
   openDetail(curr.id);
 }
 function openAddNote() {
@@ -2396,7 +2463,7 @@ function showKennelMates(kennel) {
     return `<div style="padding:6px;margin:4px 0;border-radius:4px;${style}">Ref #${m.ref} (${m.breed}) ${symptoms.length ? '· ' + symptoms.join(", ") : ""}</div>`;
   }).join("") || "<div>No mates found</div>";
   document.getElementById("mTitle").textContent = "Kennel " + kennel + " Mates";
-  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("mBody").innerHTML = rows;
   document.getElementById("modal").classList.add("show");
 }
 function showKennelHistory(kennel) {
@@ -2973,7 +3040,7 @@ function showCleaningGaps() {
   const gaps = getCleaningGaps();
   const rows = gaps.map(k => `<div style="padding:6px;margin:4px 0;background:#fff3cd;border-radius:4px;">Kennel ${k} – no cleaning in 12h</div>`).join("") || "<p>All kennels cleaned within 12h</p>";
   document.getElementById("mTitle").textContent = "Cleaning Gaps";
-  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("mBody").innerHTML = rows;
   document.getElementById("modal").classList.add("show");
 }
 function exposureReport() {
@@ -2987,7 +3054,6 @@ function exposureReport() {
     <div>Animals that shared kennel with Ref #${curr.ref}:</div>
     <div style="margin:10px 0;">${rows}</div>
     <button class="btn" onclick="window.print()">Print Report</button>
-    <button class="btn outline" onclick="closeModal()">Close</button>
   `;
   document.getElementById("modal").classList.add("show");
 }
@@ -3202,7 +3268,7 @@ function openAddPet() {
     <button class="btn" onclick="saveNewPet()">Add Pet</button>
   `;
   document.getElementById("modal").classList.add("show");
-  setTimeout(populateBreeds, 100);
+  setTimeout(refreshBreedList, 50);
 }
 function startExtract() {
   // Trigger the hidden camera/file input for extraction
