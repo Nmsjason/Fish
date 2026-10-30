@@ -430,7 +430,8 @@ function addCustomBreed() {
     customBreeds.push(b);
     saveCustomBreeds();
   }
-  
+}
+let userRole = localStorage.getItem("smartflow-role") || "";
 function showLoginSplash() {
   document.getElementById("mTitle").textContent = "Smart Flow";
   document.getElementById("mBody").innerHTML = `
@@ -444,7 +445,7 @@ function showLoginSplash() {
   document.getElementById("modal").classList.add("show");
 }
 if (!userRole) {
-  showLoginSplash();
+  // moved to end of script
 }
 function promptLogin(role) {
   const pw = prompt(role === 'manager' ? "Manager password:" : "Veterinarian password:");
@@ -456,7 +457,9 @@ function switchRole() {
   localStorage.removeItem("smartflow-role");
   userRole = "";
   closeModal();
-  setTimeout(showLoginSplash, 100);
+  setTimeout(() => {
+    showLoginSplash();
+  }, 150);
 }
 populateBreeds();
   const sel = document.getElementById("newBreed");
@@ -656,7 +659,6 @@ function loadFacilityName() {
   if (display) display.textContent = facilityName;
 }
 
-let userRole = localStorage.getItem("smartflow-role") || "";
 function setRole(role) {
   userRole = role;
   localStorage.setItem("smartflow-role", role);
@@ -1501,7 +1503,7 @@ function openDetail(id) {
       ${(curr.supplyMoves||[]).length ? `<div style="margin-top:8px;font-size:0.8rem;color:#666;">Supply moves: ${curr.supplyMoves.map(s=>s.item+" "+s.from+"→"+s.to).join(", ")}</div>` : ""}
     </div>
     <div class="card"><h3>Diagnostics <button class="info-btn" style="float:right;font-size:1.1rem;" onclick="openAddDiagnostic()">+</button></h3>
-      <div id="diagnosticsList">${(a.diagnostics||[]).map(d => `<div style="margin:6px 0;padding:6px;background:#f8f9fa;border-radius:6px;font-size:0.85rem;"><strong>${d.test}</strong>: ${d.result}<br><span style="color:#666;">${d.datetime} · ${d.initials}</span></div>`).join("") || "<span style='color:#888;'>None</span>"}</div>
+      <div id="diagnosticsList">${(a.diagnostics||[]).map(d => `<div style="margin:6px 0;padding:6px;background:#f8f9fa;border-radius:6px;font-size:0.85rem;"><strong>${d.test}</strong>: ${d.result}<br><span style="color:#666;">${d.datetime} · ${d.initials}</span>${d.photo ? `<br><img src="${d.photo}" style="max-width:100%;border-radius:6px;margin-top:6px;">` : ""}</div>`).join("") || "<span style='color:#888;'>None</span>"}</div>
     </div>
     <div class="card"><h3>Daily Record <button class="info-btn" style="float:right;font-size:1.1rem;" onclick="openAddNote()">+</button></h3>
       <canvas id="trendChart" width="340" height="160" style="width:100%;max-width:340px;margin:8px 0;"></canvas>
@@ -1849,9 +1851,25 @@ function openAddDiagnostic() {
     <input id="diagDateTime" type="datetime-local" value="${dt}" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;">
     <label><strong>Initials</strong></label>
     <input id="diagInitials" placeholder="Your initials" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;">
+    <div style="margin:10px 0;">
+      <button type="button" class="btn outline" onclick="document.getElementById('diagPhoto').click()">📷 Attach Photo</button>
+      <input type="file" id="diagPhoto" accept="image/*" capture="environment" style="display:none" onchange="previewDiagPhoto(this)">
+      <img id="diagPhotoPreview" style="max-width:100%;border-radius:8px;display:none;margin-top:8px;">
+    </div>
     <button class="btn" onclick="saveDiagnostic()">Add Diagnostic</button>
   `;
   document.getElementById("modal").classList.add("show");
+}
+function previewDiagPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    window.pendingDiagPhoto = e.target.result;
+    const img = document.getElementById("diagPhotoPreview");
+    img.src = e.target.result;
+    img.style.display = "block";
+  };
+  reader.readAsDataURL(input.files[0]);
 }
 function saveDiagnostic() {
   if (!curr) return;
@@ -1861,7 +1879,9 @@ function saveDiagnostic() {
   const initials = document.getElementById("diagInitials").value;
   if (!test || !result) return;
   if (!curr.diagnostics) curr.diagnostics = [];
-  curr.diagnostics.push({ test, result, datetime: datetime.replace("T", " "), initials });
+  const photo = window.pendingDiagPhoto || "";
+  curr.diagnostics.push({ test, result, datetime: datetime.replace("T", " "), initials, photo });
+  window.pendingDiagPhoto = "";
   saveAnimals();
   closeModal();
   openDetail(curr.id);
@@ -3021,6 +3041,9 @@ function handlePhoto(input) {
 }
 populateBreeds();
 render();
+if (!userRole) {
+  showLoginSplash();
+}
 </script>
 </body>
 </html>
