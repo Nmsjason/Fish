@@ -830,7 +830,7 @@ function openAuditLog() {
       <button class="btn outline" onclick="showAuditCategory('illness')">Illness</button>
       <button class="btn outline" onclick="showExposedList()">Exposed (Monitor)</button>
       <button class="btn outline" onclick="showWeightAlerts()">Under 3 lb Alerts</button>
-      <button class="btn outline" onclick="showCleaningHistory()">Cleaning Schedule</button>
+      <button class="btn outline" onclick="showCrossContamCleaning()">Cleaning (Cross-Contam)</button>
       <button class="btn outline" onclick="showPlaytimeHistory()">Playtime</button>
     </div>
     <button class="btn outline" style="margin-top:12px;" onclick="changeAuditPassword()">Change Password</button>
@@ -1328,6 +1328,7 @@ function toggleCleared(idx, checked) {
           d.clearedBy = initials;
           d.auditPhoto = photo;
           d.auditRecord = "Ref #" + curr.ref + " – " + d.name + " cleared";
+          if (!(curr.diagnoses||[]).some(x => !x.cleared)) curr.expectedRelease = "";
           if (!curr.auditLog) curr.auditLog = [];
           curr.auditLog.push({
             action: "Cleared",
@@ -1346,6 +1347,7 @@ function toggleCleared(idx, checked) {
         d.cleared = true;
         d.clearedAt = new Date().toLocaleString();
         d.clearedBy = initials;
+        if (!(curr.diagnoses||[]).some(x => !x.cleared)) curr.expectedRelease = "";
         if (!curr.auditLog) curr.auditLog = [];
         curr.auditLog.push({
           action: "Cleared",
@@ -1664,13 +1666,48 @@ function openCleaningLog() {
   };
   input.click();
 }
-function showCleaningHistory() {
-  const rows = cleaningLog.slice().reverse().map(e => `
+function showCleaningHistory(kennelFilter) {
+  const list = kennelFilter ? cleaningLog.filter(e => e.kennel === kennelFilter) : cleaningLog;
+  const rows = list.slice().reverse().map(e => `
     <div style="padding:8px;margin:4px 0;background:#f8f9fa;border-radius:6px;cursor:pointer;" onclick="showCleaningDetail('${e.at}')">
       <strong>${e.initials}</strong> · ${e.kennel} · ${e.at}
     </div>`).join("") || "<p>No cleaning entries</p>";
-  document.getElementById("mTitle").textContent = "Cleaning History";
+  document.getElementById("mTitle").textContent = kennelFilter ? "Cleaning – Kennel " + kennelFilter : "Cleaning History";
   document.getElementById("mBody").innerHTML = rows;
+  document.getElementById("modal").classList.add("show");
+}
+function showCrossContamCleaning() {
+  // Find adjacent kennels with same diagnosis
+  const kennelMap = {};
+  animals.forEach(a => {
+    const k = (a.kennelLetter||"") + (a.kennelNum||"");
+    if (!k) return;
+    (a.diagnoses||[]).filter(d => !d.cleared).forEach(d => {
+      if (!kennelMap[k]) kennelMap[k] = {};
+      kennelMap[k][d.name] = a.ref;
+    });
+  });
+  const flagged = new Set();
+  Object.keys(kennelMap).forEach(k => {
+    const letter = k.replace(/\d/g,"");
+    const num = parseInt(k.replace(/\D/g,"")) || 0;
+    [letter+(num-1), letter+(num+1)].forEach(adj => {
+      if (!kennelMap[adj]) return;
+      Object.keys(kennelMap[k]).forEach(diag => {
+        if (kennelMap[adj][diag]) {
+          flagged.add(k);
+          flagged.add(adj);
+        }
+      });
+    });
+  });
+  const list = cleaningLog.filter(e => flagged.has(e.kennel));
+  const rows = list.slice().reverse().map(e => `
+    <div style="padding:8px;margin:4px 0;background:#fff3cd;border-radius:6px;cursor:pointer;" onclick="showCleaningDetail('${e.at}')">
+      <strong>${e.initials}</strong> · ${e.kennel} · ${e.at} · cross-contam
+    </div>`).join("") || "<p>No cross-contamination cleaning entries</p>";
+  document.getElementById("mTitle").textContent = "Cleaning – Cross Contamination";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="openAuditLog()">Back</button>`;
   document.getElementById("modal").classList.add("show");
 }
 function showCleaningDetail(at) {
@@ -1796,14 +1833,27 @@ function openDetail(id) {
   const cls = a.status==="healthy"?"healthy":a.status==="monitor"?"monitor":"attention";
   const txt = a.status==="healthy"?"Healthy":a.status==="monitor"?"Monitor":"Attention";
   let diags = a.diagnoses && a.diagnoses.length ? a.diagnoses.map((d,i)=>`
-    <div class="diag" style="display:flex;align-items:flex-start;gap:8px;">
+    <div class="diag" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee;">
       <input type="checkbox" ${d.cleared ? "checked" : ""} onclick="event.stopPropagation();toggleCleared(${i}, this.checked)" style="margin-top:4px;">
       <div style="flex:1;">
-        <div onclick="openTreat(${i})">
-          <strong>${d.name}</strong> <span style="color:#666;font-size:0.85rem;">(${d.date || ""})</span>
-          ${d.cleared ? `<div style="font-size:0.75rem;color:#198754;">Cleared ${d.clearedAt || ""} by ${d.clearedBy || ""} ${d.auditPhoto ? '<img src="'+d.auditPhoto+'" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;margin-left:4px;">' : ""}</div>` : ""}
-          <div style="font-size:0.85rem;color:#666;">Tap for treatment plan →</div>
-        </div>
+        ${d.cleared ? `
+          <div onclick="openTreat(${i})" style="cursor:pointer;">
+            <strong>${d.name}</strong> <span style="color:#666;font-size:0.85rem;">(${d.date || ""})</span>
+            <div style="font-size:0.75rem;color:#198754;">Cleared ${d.clearedAt || ""} by ${d.clearedBy || ""}</div>
+            <div style="font-size:0.85rem;color:#666;">Tap for treatment plan →</div>
+          </div>
+        ` : `
+          <div>
+            <strong>${d.name}</strong> <span style="color:#666;font-size:0.85rem;">(${d.date || ""})</span>
+            <div style="margin-top:6px;font-size:0.9rem;">
+              <strong>Medications:</strong><br>
+              ${(d.meds||[]).map(m => typeof m === 'string' ? m : `${m.name} – ${m.dose||""} | ${m.freq||""} | ${m.dur||""}`).join("<br>") || "None"}
+            </div>
+            <div style="margin-top:4px;font-size:0.85rem;color:#555;">
+              <strong>Response:</strong> ${(d.responses||[]).join(", ") || "None"}
+            </div>
+          </div>
+        `}
         <div style="margin-top:6px;">
           ${(d.photos||[]).map(p => `<img src="${p}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;margin-right:4px;cursor:pointer;" onclick="event.stopPropagation();viewFullPhoto('${p}')">`).join("")}
           <button class="info-btn" style="font-size:0.9rem;padding:4px 8px;" onclick="event.stopPropagation();addDiagPhoto(${i})">📷</button>
@@ -1820,10 +1870,11 @@ function openDetail(id) {
       <div><h2 style="margin:0;color:#000;">Ref #${a.ref}</h2><div>${a.breed}</div><span class="badge ${cls}">${txt}</span></div>
     </div>
     <div style="font-size:0.9rem;margin-bottom:12px;color:var(--teal);font-weight:600;">Entry Date: ${a.entryDate || "Not set"}</div>
-    <div class="card" style="margin-bottom:12px;">
-      <h3>Expected Release</h3>
+    ${(a.diagnoses||[]).some(d => !d.cleared) ? `<div class="card" style="margin-bottom:12px;">
+      <h3>Progress</h3>
       <input type="date" value="${a.expectedRelease||""}" onchange="curr.expectedRelease=this.value;saveAnimals();" style="width:100%;padding:8px;border-radius:8px;">
-    </div>
+      <div style="font-size:0.8rem;color:#666;margin-top:4px;">5 days from initial diagnosis</div>
+    </div>` : ""}
     <div class="card" style="margin-bottom:12px;">
       <h3>Status</h3>
       <select id="statusSelect" onchange="updateStatus(this.value)">
@@ -1842,7 +1893,7 @@ function openDetail(id) {
     <div class="card"><h3>Tracking</h3>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
         <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;${needsCleaning(a.kennelLetter+a.kennelNum)?'background:#e74c3c;color:#fff;border-color:#e74c3c;':''}" onclick="openCleaningLog()">Clean</button>
-        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="showCleaningHistory()">Clean Log</button>
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="showCleaningHistory('${a.kennelLetter}${a.kennelNum}')">Clean Log</button>
         <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="exposureReport()">Exposure</button>
       </div>
       <div style="display:flex;gap:6px;">
@@ -2138,7 +2189,30 @@ function openAddDiag() {
     <label>Diagnosis Date</label>
     <input id="newDiagDate" type="date" value="${new Date().toISOString().split("T")[0]}" style="width:100%;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:8px;">
     <label>Diagnosis Name</label>
-    <input id="newDiagName" placeholder="Diagnosis name" style="width:100%;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:8px;">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <select id="newDiagName" style="flex:1;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:8px;">
+        <option value="">Select diagnosis</option>
+        <option>Cherry Eye</option>
+        <option>Coccidia</option>
+        <option>Corneal Ulceration</option>
+        <option>Demodicosis</option>
+        <option>Ear Mites</option>
+        <option>Fleas</option>
+        <option>Gastritis</option>
+        <option>Giardia</option>
+        <option>Hook Worms</option>
+        <option>Round Worms</option>
+        <option>Seborrhea</option>
+        <option>Superficial Pyoderma</option>
+        <option>Tape Worms</option>
+        <option>Upper Respiratory Infection</option>
+        <option>Urinary Tract Infection</option>
+        <option>Urticaria</option>
+        <option>Whip Worms</option>
+      </select>
+      <button type="button" class="info-btn" style="font-size:1.1rem;" onclick="document.getElementById('customDiag').style.display='block';this.style.display='none';">+</button>
+    </div>
+    <input id="customDiag" placeholder="Custom diagnosis" style="display:none;width:100%;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:8px;">
     <div id="medsContainer">
       <label>Medications</label>
       <div class="med-row" style="margin-bottom:8px;">
@@ -2229,13 +2303,19 @@ function saveDiag() {
     if (inp.value) responses.push(inp.value);
   });
   const d = {
-    name: document.getElementById("newDiagName").value || "Untitled",
+    name: (document.getElementById("customDiag")?.value || document.getElementById("newDiagName").value || "Untitled").trim(),
     date: document.getElementById("newDiagDate").value,
     meds,
     responses
   };
   if (!curr.diagnoses) curr.diagnoses = [];
   curr.diagnoses.push(d);
+  // Set progress date to 5 days after initial diagnosis if not already set
+  if (!curr.expectedRelease) {
+    const diagDate = new Date(d.date || Date.now());
+    diagDate.setDate(diagDate.getDate() + 5);
+    curr.expectedRelease = diagDate.toISOString().split("T")[0];
+  }
   if (!curr.manualStatus) curr.status = autoStatus(curr);
   saveAnimals();
   closeModal();
@@ -2675,7 +2755,7 @@ function renderKennelCell(r, c, special) {
   const extra = outline ? ` style="outline:${outline};"` : "";
   const dragAttr = kLabel ? ` draggable="true" ondragstart="dragKennel(event,'${kLabel}')"` : "";
   const dropAttr = ` ondragover="event.preventDefault()" ondrop="dropKennel(event,${r},${c})"`;
-  return `<div class="kennel-square ${type}"${extra}${dragAttr}${dropAttr} onclick="cycleKennel(${r},${c})" title="${kLabel || ''}">${display}</div>`;
+  return `<div class="kennel-square ${type}"${extra}${dragAttr}${dropAttr} onclick="cycleKennel(${r},${c})" oncontextmenu="event.preventDefault();longPressKennel(${r},${c})" ontouchstart="startLongPress(${r},${c})" ontouchend="clearLongPress()" ontouchmove="clearLongPress()" title="${kLabel || ''}">${display}</div>`;
 }
 
 
@@ -2777,6 +2857,35 @@ function cycleKennel(r, c) {
   }
   saveKennelMap();
   renderLayout();
+}
+
+let longPressTimer = null;
+function startLongPress(r, c) {
+  clearLongPress();
+  longPressTimer = setTimeout(() => longPressKennel(r, c), 600);
+}
+function clearLongPress() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+}
+function longPressKennel(r, c) {
+  const key = r + "-" + c;
+  const kLabel = kennelLabels[key];
+  if (!kLabel) { alert("Label the kennel first (use Label Mode)."); return; }
+  const ref = prompt("Enter Ref # to assign to kennel " + kLabel + ":");
+  if (!ref || !ref.trim()) return;
+  const pet = animals.find(a => a.ref === ref.trim());
+  if (!pet) { alert("No animal found with Ref #" + ref); return; }
+  // Move pet to this kennel
+  const letter = kLabel.replace(/\d/g, "");
+  const num = parseInt(kLabel.replace(/\D/g, "")) || 0;
+  pet.kennelLetter = letter;
+  pet.kennelNum = num;
+  pet.section = getWardForKennel(letter);
+  if (!pet.kennelHistory) pet.kennelHistory = [];
+  pet.kennelHistory.push({ kennel: kLabel, at: new Date().toLocaleString() });
+  saveAnimals();
+  renderLayout();
+  alert("Ref #" + ref + " assigned to " + kLabel);
 }
 
 function clearMap() {
