@@ -716,8 +716,36 @@ function checkExposures() {
     }
   });
 }
+function checkWeightAlerts() {
+  animals.forEach(a => {
+    if (a.species !== "canine") return;
+    const wt = parseFloat(a.weight || 0);
+    if (wt > 0 && wt < 3) {
+      const prev = parseFloat(a.prevWeight || wt);
+      const loss = prev - wt;
+      const skipped = a.daily && a.daily.ate && /0|skip|none/i.test(a.daily.ate);
+      if (loss > 0.25 || skipped) {
+        if (!a.weightAlert) a.weightAlert = { at: new Date().toISOString(), loss, skipped };
+      }
+    }
+  });
+}
+function clearWeightAlert() {
+  if (!curr) return;
+  curr.weightAlert = null;
+  saveAnimals();
+  openDetail(curr.id);
+}
+function showWeightAlerts() {
+  const list = animals.filter(a => a.weightAlert);
+  const rows = list.map(a => `<div style="padding:8px;margin:4px 0;background:#f8d7da;border-radius:6px;">Ref #${a.ref} · ${a.weight} lb · ${a.weightAlert.skipped?"skipped meal":a.weightAlert.loss+" lb loss"}</div>`).join("") || "<p>No alerts</p>";
+  document.getElementById("mTitle").textContent = "Under 3 lb Alerts";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="openAuditLog()">Back</button>`;
+  document.getElementById("modal").classList.add("show");
+}
 function saveAnimals() {
   checkExposures();
+  checkWeightAlerts();
   localStorage.setItem("smartflow-animals", JSON.stringify(animals));
 }
 
@@ -752,6 +780,7 @@ function openAuditLog() {
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn outline" onclick="showAuditCategory('illness')">Illness</button>
       <button class="btn outline" onclick="showExposedList()">Exposed (Monitor)</button>
+      <button class="btn outline" onclick="showWeightAlerts()">Under 3 lb Alerts</button>
       <button class="btn outline" onclick="showCleaningHistory()">Cleaning Schedule</button>
       <button class="btn outline" onclick="showPlaytimeHistory()">Playtime</button>
     </div>
@@ -1181,8 +1210,15 @@ function render() {
   if (badges) {
     let b = "";
     const vaxDue = animals.filter(a => (a.vaccines||[]).some(v => {
-      const due = nextDue(v.name, v.date, parseInt(a.age));
-      return due && daysUntil(due) <= 7 && daysUntil(due) >= 0;
+      const due = nextDue(v.name, v.date, parseInt(a.age), a.entryDate);
+      if (!due) return false;
+      const days = daysUntil(due);
+      if (/rabies/i.test(v.name)) {
+        const mon = new Date(due);
+        mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+        return new Date() >= mon && days >= 0;
+      }
+      return days <= 3 && days >= 0;
     })).length;
     if (vaxDue) b += `<span style="background:#dc3545;color:#fff;padding:4px 10px;border-radius:12px;font-size:0.75rem;cursor:pointer;" onclick="filterVaccinesDue()"> ${vaxDue} vaccines due</span>`;
     const isoRel = animals.filter(a => a.section === "isolation" && a.expectedRelease).length;
@@ -1755,7 +1791,7 @@ function openDetail(id) {
       <div style="font-size:0.8rem;color:#666;margin-top:4px;">Updates in real time on dashboard and layout. Auto-adjusts with certain diagnoses.</div>
     </div>
     <div class="exec"><strong>At A Glance</strong><br>${buildSummary(a)}</div>
-    ${(a.exposed||[]).length ? `<div class="card" style="border-left:4px solid #e74c3c;"><strong>⚠ Exposed</strong><br>${a.exposed.map(ex => {
+    ${(a.weightAlert) ? `<div class="card" style="border-left:4px solid #c0392b;"><strong>⚠ Under 3 lb Alert</strong><br>${a.weightAlert.skipped?"Skipped meal":a.weightAlert.loss+" lb loss"}<br><button class="btn outline" onclick="clearWeightAlert()">Clear (record meal)</button></div>` : ""}
       const left = daysLeft(ex);
       return `From Ref #${ex.from} (${ex.symptom}) · ${left} day${left!==1?"s":""} left`;
     }).join("<br>")}</div>` : ""}
@@ -1778,7 +1814,14 @@ function openDetail(id) {
       <div id="kennelHistoryList">${renderKennelHistory(a)}</div>
       ${a.daily?.concerns === "Possible contact" ? `<div style="margin-top:8px;padding:8px;background:#fff3cd;border-radius:6px;border-left:4px solid #ffc107;"><strong style="color:#856404;">⚠ Possible Contact</strong><br><span style="font-size:0.85rem;">Monitor for symptoms. Cage mates: ${cageMates.map(m=>m.ref).join(", ")||"none"}</span></div>` : ""}
     </div>
-    <div class="card"><h3>Identification</h3>Microchip: ${a.microchip}<br>Gender: ${a.gender} · Age: ${a.age}<br>Section: ${a.section}</div>
+    <div class="card"><h3>Identification</h3>
+      <strong>Ref #${a.ref}</strong><br>
+      Microchip: ${a.microchip}<br>
+      Gender: ${a.gender} · Age: ${a.age}<br>
+      Breed: ${a.breed}<br>
+      Coloring: ${a.coloring}<br>
+      Section: ${a.section}
+    </div>
     <div class="card"><h3>Fecal Score</h3>
       <div class="fecal-row">
         <select id="fecalSelect" onchange="updateFecal(this.value)">
@@ -1853,14 +1896,23 @@ function loadFacilityName() {
   const el = document.getElementById("facilityName");
   if (el) el.value = facilityName;
 }
-function nextDue(vaxName, lastDate, ageWeeks) {
-  if (!lastDate) return null;
-  const d = new Date(lastDate);
+function nextDue(vaxName, lastDate, ageWeeks, entryDate) {
+  if (!lastDate && !entryDate) return null;
   const name = (vaxName || "").toLowerCase();
-  if (/dhpp|dhlpp|dhppL/i.test(name)) {
+  const d = lastDate ? new Date(lastDate) : new Date(entryDate);
+  if (/dhpp|fvrcp/i.test(name)) {
     if (ageWeeks && ageWeeks < 16) d.setDate(d.getDate() + 14);
     else d.setFullYear(d.getFullYear() + 1);
-  } else if (/bordetella|rabies/i.test(name)) {
+  } else if (/bordetella/i.test(name)) {
+    if (!lastDate) return new Date(entryDate);
+    d.setFullYear(d.getFullYear() + 1);
+  } else if (/rabies/i.test(name)) {
+    if (ageWeeks && ageWeeks < 16) {
+      const birth = new Date();
+      birth.setDate(birth.getDate() - (ageWeeks * 7));
+      birth.setDate(birth.getDate() + (16 * 7));
+      return birth;
+    }
     d.setFullYear(d.getFullYear() + 1);
   } else {
     d.setFullYear(d.getFullYear() + 1);
@@ -1868,7 +1920,7 @@ function nextDue(vaxName, lastDate, ageWeeks) {
   return d;
 }
 function isPriority(name) {
-  return /dhpp|dhlpp|bordetella|rabies/i.test(name || "");
+  return /dhpp|fvrcp|bordetella|rabies/i.test(name || "");
 }
 function daysUntil(date) {
   if (!date) return 999;
@@ -1883,8 +1935,13 @@ function renderVaxList(a) {
   let html = "";
   if (priority.length) {
     html += "<strong>Priority Vaccines</strong><br>";
-    priority.forEach(v => {
-      const due = nextDue(v.name, v.date, ageW);
+    priority.forEach((v, i) => {
+      const due = nextDue(v.name, v.date, ageW, a.entryDate);
+      const days = daysUntil(due);
+      const overdue = days < 0;
+      const soon = days <= 3;
+      html += `<div style="margin:4px 0;">${v.name} – ${v.date||"not given"} ${v.givenBy?"by "+v.givenBy:""} ${due?"(next "+due.toLocaleDateString()+")":""} ${overdue?"<span style='color:#c0392b;'>OVERDUE</span>":soon?"<span style='color:#e67e22;'>due soon</span>":""} <button class="info-btn" style="font-size:0.75rem;padding:2px 6px;" onclick="markVaxGiven(${i})">Given</button></div>`;
+    });
       const days = due ? daysUntil(due) : 999;
       const dueStr = due ? due.toLocaleDateString() : "—";
       const color = days <= 7 ? "color:#dc3545;font-weight:700;" : "";
@@ -1900,6 +1957,15 @@ function renderVaxList(a) {
     });
   }
   return html || "None";
+}
+function markVaxGiven(idx) {
+  if (!curr) return;
+  const initials = prompt("Your initials:");
+  if (!initials) return;
+  curr.vaccines[idx].date = new Date().toLocaleDateString();
+  curr.vaccines[idx].givenBy = initials;
+  saveAnimals();
+  openDetail(curr.id);
 }
 function openAddVax() {
   document.getElementById("mTitle").textContent = "Add Vaccine / Deworming";
@@ -3089,6 +3155,10 @@ function openAddPet() {
   const breedOpts = allBreeds().map(b => `<option value="${b}">${b}</option>`).join("");
   document.getElementById("mBody").innerHTML = `
     <input id="newRef" placeholder="Ref #" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;">
+    <select id="newSpecies" style="width:100%;padding:10px;margin:6px 0;border-radius:8px;" onchange="adjustSpecies()">
+      <option value="canine">Canine</option>
+      <option value="feline">Feline</option>
+    </select>
     <div style="display:flex;gap:8px;align-items:center;margin:6px 0;">
       <select id="newBreed" style="flex:1;padding:10px;border-radius:8px;">
         <option value="">Select breed…</option>
@@ -3265,6 +3335,7 @@ function saveNewPet() {
   const pet = {
     id: Date.now(),
     ref,
+    species: document.getElementById("newSpecies").value || "canine",
     breed: document.getElementById("newBreed").value || "Unknown",
     gender: document.getElementById("newGender").value || "",
     age: document.getElementById("newAge").value || "",
