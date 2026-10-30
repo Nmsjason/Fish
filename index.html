@@ -624,6 +624,7 @@ function markFirstDose(ref) {
   alert("First dose recorded for Ref #" + ref + ". Banner cleared.");
 }
 
+let masterSheet = JSON.parse(localStorage.getItem("smartflow-mastersheet") || "[]");
 function saveMaster() {
   localStorage.setItem("smartflow-mastersheet", JSON.stringify(masterSheet));
 }
@@ -1204,7 +1205,7 @@ function render() {
       const txt = a.status==="healthy"?"Healthy":a.status==="monitor"?"Monitor":"Attention";
       const needsPlan = a.status === "monitor" || a.status === "attention";
       const bang = needsPlan ? `<button class="btn bang-btn" data-id="${a.id}" style="width:auto;padding:10px 16px;margin:0;background:#dc3545;font-size:1.1rem;min-width:44px;min-height:44px;">!</button>` : "";
-      html += `<div class="animal-card" data-id="${a.id}" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);${needsCleaning(a.kennelLetter+a.kennelNum)?'border:3px solid #e74c3c;':''}">
+      html += `<div class="animal-card" data-id="${a.id}" onclick="openDetail(${a.id})" ontouchend="event.preventDefault();openDetail(${a.id})" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);${needsCleaning(a.kennelLetter+a.kennelNum)?'border:3px solid #e74c3c;':''}">
         <img class="photo" src="${a.photo}" alt="">
         <div class="info" style="flex:1;">
           <h3>Ref #${a.ref} · ${a.breed} ${(a.exposed||[]).length ? '<span style="color:#e74c3c;font-size:0.9rem;">⚠ ' + Math.min(...a.exposed.map(daysLeft)) + 'd</span>' : ''}</h3>
@@ -1823,6 +1824,7 @@ function openArchivedDetail(id) {
 function openDetail(id) {
   window.scrollTo(0, 0);
   curr = animals.find(a => a.id===id) || archived.find(a => a.id===id);
+  if (!curr) { alert("Patient not found"); return; }
   if (!curr.manualStatus) curr.status = autoStatus(curr);
   document.getElementById("dashView").style.display = "none";
   document.getElementById("layoutView").style.display = "none";
