@@ -731,7 +731,7 @@ function openAuditLog() {
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn outline" onclick="showAuditCategory('illness')">Illness</button>
       <button class="btn outline" onclick="showExposedList()">Exposed (Monitor)</button>
-      <button class="btn outline" onclick="showAuditCategory('cleaning')">Cleaning Schedule</button>
+      <button class="btn outline" onclick="showCleaningHistory()">Cleaning Schedule</button>
       <button class="btn outline" onclick="showPlaytimeHistory()">Playtime</button>
     </div>
     <button class="btn outline" style="margin-top:12px;" onclick="changeAuditPassword()">Change Password</button>
@@ -1521,31 +1521,27 @@ let cleaningLog = JSON.parse(localStorage.getItem("smartflow-cleaning") || "[]")
 function openCleaningLog() {
   const initials = prompt("Your initials (required):");
   if (!initials || !initials.trim()) { alert("Initials required"); return; }
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-    .then(stream => {
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.play();
-      video.onloadeddata = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = 320; canvas.height = 240;
-        canvas.getContext("2d").drawImage(video, 0, 0, 320, 240);
-        stream.getTracks().forEach(t => t.stop());
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.capture = "user";
+  input.onchange = function() {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
         cleaningLog.push({
           initials,
-          photo: canvas.toDataURL("image/jpeg", 0.7),
+          photo: e.target.result,
           at: new Date().toLocaleString(),
           kennel: curr ? (curr.kennelLetter + curr.kennelNum) : "general"
         });
         localStorage.setItem("smartflow-cleaning", JSON.stringify(cleaningLog));
         alert("Cleaning logged");
       };
-    })
-    .catch(() => {
-      cleaningLog.push({ initials, at: new Date().toLocaleString(), kennel: curr ? (curr.kennelLetter + curr.kennelNum) : "general" });
-      localStorage.setItem("smartflow-cleaning", JSON.stringify(cleaningLog));
-      alert("Cleaning logged (no photo)");
-    });
+      reader.readAsDataURL(input.files[0]);
+    }
+  };
+  input.click();
 }
 function showCleaningHistory() {
   const rows = cleaningLog.slice().reverse().map(e => `
@@ -1722,15 +1718,18 @@ function openDetail(id) {
       return `From Ref #${ex.from} (${ex.symptom}) · ${left} day${left!==1?"s":""} left`;
     }).join("<br>")}</div>` : ""}
     <div class="card"><h3>Tracking</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn outline" onclick="openCleaningLog()">Log Cleaning</button>
-        <button class="btn outline" onclick="exposureReport()">Exposure Report</button>
-        <button class="btn outline" onclick="showCleaningHistory()">Cleaning History</button>
-        <button class="btn outline" onclick="startPlaytime()">Start Playtime</button>
-        <button class="btn outline" onclick="endPlaytime()">End Playtime</button>
-        <button class="btn outline" onclick="showPlaytimeHistory()">Playtime History</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="openCleaningLog()">Clean</button>
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="showCleaningHistory()">Clean Log</button>
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="exposureReport()">Exposure</button>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="startPlaytime()">Play Start</button>
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="endPlaytime()">Play End</button>
+        <button class="btn outline" style="flex:1;padding:8px;font-size:0.85rem;" onclick="showPlaytimeHistory()">Play Log</button>
       </div>
     </div>
+    <div class="card"><h3>Kennel Assignment <button class="info-btn" style="float:right;font-size:1.1rem;" onclick="openAssignKennel()">+</button></h3>
       <div style="margin-top:8px;">Current: ${a.kennelLetter}${a.kennelNum} (${a.section})</div>
       ${cageMates.length ? `<div><strong>Cage mates:</strong> ${cageMates.map(m => `Ref #${m.ref}`).join(", ")}</div>` : ""}
       <div style="margin-top:12px;"><strong>Assignment History</strong></div>
@@ -2233,7 +2232,7 @@ function openAssignKennel() {
         ${Array.from({length:51},(_,i)=>`<option ${curr.kennelNum===i?"selected":""}>${i}</option>`).join("")}
       </select>
     </div>
-    <button class="btn outline" onclick="document.getElementById('newKennelLetter').value='I';">Set Isolation (I)</button>
+    <button class="btn outline" onclick="document.getElementById('newKennelLetter').value='I';saveKennelAssignment();">Set Isolation (I)</button>
     <button class="btn" style="margin-top:10px;" onclick="saveKennelAssignment()">Save Assignment</button>
   `;
   document.getElementById("modal").classList.add("show");
