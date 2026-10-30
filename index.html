@@ -636,10 +636,6 @@ function addToMaster(id) {
     reader.readAsDataURL(photoInput.files[0]);
   } else finish(null);
 }
-  saveMaster();
-  closeModal();
-  alert(`Ref #${a.ref} added to Master Sheet.`);
-}
 
 function openMasterSheet() {
   if (!masterSheet.length) {
@@ -1801,6 +1797,7 @@ function openDetail(id) {
     </div>
     <div class="exec"><strong>At A Glance</strong><br>${buildSummary(a)}</div>
     ${(a.weightAlert) ? `<div class="card" style="border-left:4px solid #c0392b;"><strong>⚠ Under 3 lb Alert</strong><br>${a.weightAlert.skipped?"Skipped meal":a.weightAlert.loss+" lb loss"}<br><button class="btn outline" onclick="clearWeightAlert()">Clear (record meal)</button></div>` : ""}
+    ${(a.exposed||[]).length ? `<div class="card" style="border-left:4px solid #e74c3c;"><strong>⚠ Exposed</strong><br>${a.exposed.map(ex => {
       const left = daysLeft(ex);
       return `From Ref #${ex.from} (${ex.symptom}) · ${left} day${left!==1?"s":""} left`;
     }).join("<br>")}</div>` : ""}
@@ -1950,12 +1947,6 @@ function renderVaxList(a) {
       const overdue = days < 0;
       const soon = days <= 3;
       html += `<div style="margin:4px 0;">${v.name} – ${v.date||"not given"} ${v.givenBy?"by "+v.givenBy:""} ${due?"(next "+due.toLocaleDateString()+")":""} ${overdue?"<span style='color:#c0392b;'>OVERDUE</span>":soon?"<span style='color:#e67e22;'>due soon</span>":""} <button class="info-btn" style="font-size:0.75rem;padding:2px 6px;" onclick="markVaxGiven(${i})">Given</button></div>`;
-    });
-      const days = due ? daysUntil(due) : 999;
-      const dueStr = due ? due.toLocaleDateString() : "—";
-      const color = days <= 7 ? "color:#dc3545;font-weight:700;" : "";
-      const src = v.facility || (v.historical ? "Historical" : facilityName);
-      html += `<div style="margin:4px 0;${color}">${v.name} – given ${v.date || "—"} · Next: ${dueStr} <span style="font-size:0.75rem;color:#666;">(${src})</span></div>`;
     });
   }
   if (other.length) {
