@@ -397,6 +397,8 @@
   </div>
 
   <div id="alertBadges" style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;"></div>
+  <div id="exposureStrip" style="display:none;background:#fff3cd;padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;cursor:pointer;" onclick="showExposedList()"></div>
+  <div id="cleaningGapStrip" style="display:none;background:#f8d7da;padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;cursor:pointer;" onclick="showCleaningGaps()"></div>
   <div id="outbreakFlag" style="display:none;background:#f8d7da;padding:10px;border-radius:8px;margin-bottom:8px;font-size:0.85rem;"></div>
 
   <input class="search" id="search" placeholder="Search Ref #, microchip, breed, kennel..." oninput="render()">
@@ -665,7 +667,36 @@ function clearMaster() {
   }
 }
 
+function checkExposures() {
+  const now = Date.now();
+  animals.forEach(a => {
+    if (!a.exposed) a.exposed = [];
+    // Expire exposures older than 5 days with no diagnosis
+    a.exposed = a.exposed.filter(ex => {
+      const age = (now - new Date(ex.at).getTime()) / 86400000;
+      const hasDiag = (a.diagnoses || []).some(d => !d.cleared && /parvo|giardia|uri/i.test(d.name));
+      return age < 5 && !hasDiag;
+    });
+    // Flag cage mates of sick animals
+    const sick = (a.diagnoses || []).some(d => !d.cleared && /parvo|giardia|uri/i.test(d.name));
+    if (sick) {
+      const mates = animals.filter(m => m.kennelLetter === a.kennelLetter && m.kennelNum === a.kennelNum && m.ref !== a.ref);
+      mates.forEach(m => {
+        if (!m.exposed) m.exposed = [];
+        const exists = m.exposed.find(ex => ex.from === a.ref);
+        if (!exists) {
+          m.exposed.push({
+            from: a.ref,
+            symptom: (a.diagnoses.find(d => !d.cleared && /parvo|giardia|uri/i.test(d.name)) || {}).name || "illness",
+            at: new Date().toISOString()
+          });
+        }
+      });
+    }
+  });
+}
 function saveAnimals() {
+  checkExposures();
   localStorage.setItem("smartflow-animals", JSON.stringify(animals));
 }
 
@@ -695,24 +726,76 @@ let auditPassword = localStorage.getItem("smartflow-auditpw") || "123";
 function openAuditLog() {
   const pw = prompt("Enter admin password to view audit log:");
   if (pw !== auditPassword) { alert("Incorrect password."); return; }
+  document.getElementById("mTitle").textContent = "Audit Log";
+  document.getElementById("mBody").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn outline" onclick="showAuditCategory('illness')">Illness</button>
+      <button class="btn outline" onclick="showExposedList()">Exposed (Monitor)</button>
+      <button class="btn outline" onclick="showAuditCategory('cleaning')">Cleaning Schedule</button>
+      <button class="btn outline" onclick="showPlaytimeHistory()">Playtime</button>
+    </div>
+    <button class="btn outline" style="margin-top:12px;" onclick="changeAuditPassword()">Change Password</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
+function daysLeft(ex) {
+  const age = (Date.now() - new Date(ex.at).getTime()) / 86400000;
+  return Math.max(0, Math.ceil(5 - age));
+}
+function showExposedList(filter) {
+  const exposed = animals.filter(a => (a.exposed||[]).length);
+  const filtered = filter ? exposed.filter(a => a.exposed.some(ex => new RegExp(filter, "i").test(ex.symptom))) : exposed;
+  const rows = filtered.map(a => {
+    const left = Math.min(...a.exposed.map(daysLeft));
+    return `<div style="padding:8px;margin:4px 0;background:#fff3cd;border-radius:6px;cursor:pointer;" onclick="openDetail(${a.id});closeModal();">
+      Ref #${a.ref} · ${a.exposed.map(ex => ex.symptom).join(", ")} · <strong>${left} day${left!==1?"s":""} left</strong>
+    </div>`;
+  }).join("") || "<p>No exposed animals</p>";
+  document.getElementById("mTitle").textContent = "Exposed Animals";
+  document.getElementById("mBody").innerHTML = `
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+      <button class="btn outline" onclick="showExposedList()">All</button>
+      <button class="btn outline" onclick="showExposedList('parvo')">Parvo</button>
+      <button class="btn outline" onclick="showExposedList('giardia')">Giardia</button>
+      <button class="btn outline" onclick="showExposedList('uri')">URI</button>
+    </div>
+    ${rows}
+    <button class="btn outline" style="margin-top:10px;" onclick="openAuditLog()">Back</button>
+  `;
+}
+function showAuditCategory(cat) {
+  if (cat === "cleaning") { showCleaningHistory(); return; }
   let entries = [];
   animals.forEach(a => {
-    (a.auditLog || []).forEach(e => entries.push({ ref: a.ref, ...e }));
+    (a.auditLog || []).forEach(e => {
+      if (cat === "illness" && /cleared|diagnosis/i.test(e.action)) entries.push({ ref: a.ref, ...e });
+    });
   });
   entries.sort((a,b) => new Date(b.at) - new Date(a.at));
   const rows = entries.length
-    ? entries.map(e => `<div style="border-bottom:1px solid #eee;padding:8px 0;">
+    ? entries.map(e => `<div style="border-bottom:1px solid #eee;padding:8px 0;cursor:pointer;" onclick="showAuditDetail('${e.ref}','${e.at}')">
         <strong>Ref #${e.ref}</strong> · ${e.diagnosis}<br>
-        ${e.action} ${e.at} by ${e.by}<br>
-        ${e.photo ? '<img src="'+e.photo+'" style="width:64px;height:64px;border-radius:8px;margin-top:6px;object-fit:cover;">' : ""}
+        ${e.action} ${e.at} by ${e.by}
       </div>`).join("")
-    : "<p>No audit entries yet.</p>";
-  document.getElementById("mTitle").textContent = "Audit Log (Admin)";
+    : "<p>No entries</p>";
+  document.getElementById("mTitle").textContent = cat === "illness" ? "Illness Log" : "Audit";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="openAuditLog()">Back</button>`;
+}
+function showAuditDetail(ref, at) {
+  let entry = null;
+  animals.forEach(a => {
+    if (a.ref == ref) {
+      entry = (a.auditLog || []).find(e => e.at === at);
+    }
+  });
+  if (!entry) return;
+  document.getElementById("mTitle").textContent = "Ref #" + ref + " – " + entry.action;
   document.getElementById("mBody").innerHTML = `
-    ${rows}
-    <button class="btn outline" onclick="changeAuditPassword()">Change Password</button>
+    <div>${entry.diagnosis}</div>
+    <div>${entry.at} by ${entry.by}</div>
+    ${entry.photo ? `<img src="${entry.photo}" style="width:160px;height:120px;border-radius:8px;margin-top:8px;">` : ""}
+    <button class="btn outline" style="margin-top:10px;" onclick="showAuditCategory('illness')">Back</button>
   `;
-  document.getElementById("modal").classList.add("show");
 }
 function changeAuditPassword() {
   const np = prompt("New admin password:");
@@ -1031,7 +1114,7 @@ function render() {
       html += `<div class="animal-card" data-id="${a.id}" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0.1);">
         <img class="photo" src="${a.photo}" alt="">
         <div class="info" style="flex:1;">
-          <h3>Ref #${a.ref} · ${a.breed}</h3>
+          <h3>Ref #${a.ref} · ${a.breed} ${(a.exposed||[]).length ? '<span style="color:#e74c3c;font-size:0.9rem;">⚠ ' + Math.min(...a.exposed.map(daysLeft)) + 'd</span>' : ''}</h3>
           <div class="meta">${a.coloring} · ${a.gender} · ${a.age}<br>Kennel ${a.kennelLetter}${a.kennelNum} · Fecal ${a.fecal || "—"}</div>
           <span class="badge ${cls}">${txt}</span>
         </div>
@@ -1433,30 +1516,92 @@ function showCleanHistory() {
   document.getElementById("mBody").innerHTML = list;
   document.getElementById("modal").classList.add("show");
 }
-// Isolation checklist
-function isolationChecklist() {
-  if (!curr) return;
-  document.getElementById("mTitle").textContent = "Isolation Checklist";
-  document.getElementById("mBody").innerHTML = `
-    <label><input type="checkbox" id="chkGloves"> Gloves/gown used</label><br>
-    <label><input type="checkbox" id="chkSupplies"> Separate supplies used</label><br>
-    <label><input type="checkbox" id="chkStaff"> Staff initials logged</label><br>
-    <input id="isoInitials" placeholder="Your initials" style="width:100%;padding:10px;margin:8px 0;border-radius:8px;">
-    <button class="btn" onclick="saveIsolationCheck()">Complete</button>
-  `;
+// Cleaning initials tracker
+let cleaningLog = JSON.parse(localStorage.getItem("smartflow-cleaning") || "[]");
+function openCleaningLog() {
+  const initials = prompt("Your initials (required):");
+  if (!initials || !initials.trim()) { alert("Initials required"); return; }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+    .then(stream => {
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.play();
+      video.onloadeddata = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 320; canvas.height = 240;
+        canvas.getContext("2d").drawImage(video, 0, 0, 320, 240);
+        stream.getTracks().forEach(t => t.stop());
+        cleaningLog.push({
+          initials,
+          photo: canvas.toDataURL("image/jpeg", 0.7),
+          at: new Date().toLocaleString(),
+          kennel: curr ? (curr.kennelLetter + curr.kennelNum) : "general"
+        });
+        localStorage.setItem("smartflow-cleaning", JSON.stringify(cleaningLog));
+        alert("Cleaning logged");
+      };
+    })
+    .catch(() => {
+      cleaningLog.push({ initials, at: new Date().toLocaleString(), kennel: curr ? (curr.kennelLetter + curr.kennelNum) : "general" });
+      localStorage.setItem("smartflow-cleaning", JSON.stringify(cleaningLog));
+      alert("Cleaning logged (no photo)");
+    });
+}
+function showCleaningHistory() {
+  const rows = cleaningLog.slice().reverse().map(e => `
+    <div style="padding:8px;margin:4px 0;background:#f8f9fa;border-radius:6px;cursor:pointer;" onclick="showCleaningDetail('${e.at}')">
+      <strong>${e.initials}</strong> · ${e.kennel} · ${e.at}
+    </div>`).join("") || "<p>No cleaning entries</p>";
+  document.getElementById("mTitle").textContent = "Cleaning History";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
   document.getElementById("modal").classList.add("show");
 }
-function saveIsolationCheck() {
+function showCleaningDetail(at) {
+  const e = cleaningLog.find(x => x.at === at);
+  if (!e) return;
+  document.getElementById("mTitle").textContent = "Cleaning – " + e.initials;
+  document.getElementById("mBody").innerHTML = `
+    <div>Kennel: ${e.kennel}</div>
+    <div>Time: ${e.at}</div>
+    ${e.photo ? `<img src="${e.photo}" style="width:160px;height:120px;border-radius:8px;margin-top:8px;">` : ""}
+    <button class="btn outline" style="margin-top:10px;" onclick="showCleaningHistory()">Back</button>
+  `;
+}
+// Playtime checkout
+let playtimeLog = JSON.parse(localStorage.getItem("smartflow-playtime") || "[]");
+function startPlaytime() {
   if (!curr) return;
-  curr.isolationCheck = {
-    gloves: document.getElementById("chkGloves").checked,
-    supplies: document.getElementById("chkSupplies").checked,
-    initials: document.getElementById("isoInitials").value,
-    date: new Date().toLocaleString()
-  };
-  saveAnimals();
-  closeModal();
-  alert("Isolation checklist saved");
+  const initials = prompt("Your initials:");
+  if (!initials) return;
+  playtimeLog.push({
+    ref: curr.ref,
+    initials,
+    start: new Date().toLocaleString(),
+    end: null
+  });
+  localStorage.setItem("smartflow-playtime", JSON.stringify(playtimeLog));
+  alert("Playtime started");
+}
+function endPlaytime() {
+  if (!curr) return;
+  const open = playtimeLog.find(p => p.ref === curr.ref && !p.end);
+  if (!open) { alert("No open playtime"); return; }
+  open.end = new Date().toLocaleString();
+  localStorage.setItem("smartflow-playtime", JSON.stringify(playtimeLog));
+  alert("Playtime ended");
+}
+function showPlaytimeHistory() {
+  const rows = playtimeLog.slice().reverse().map(p => `
+    <div style="padding:8px;margin:4px 0;background:#f8f9fa;border-radius:6px;">
+      Ref #${p.ref} · ${p.initials}<br>${p.start} – ${p.end || "ongoing"}
+    </div>`).join("") || "<p>No playtime entries</p>";
+  document.getElementById("mTitle").textContent = "Playtime History";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("modal").classList.add("show");
+}
+// Isolation checklist removed
+function isolationChecklist() {
+  openCleaningLog();
 }
 // Shared supply tracking
 let supplyLog = JSON.parse(localStorage.getItem("smartflow-supplylog") || "[]");
@@ -1572,7 +1717,20 @@ function openDetail(id) {
       <div style="font-size:0.8rem;color:#666;margin-top:4px;">Updates in real time on dashboard and layout. Auto-adjusts with certain diagnoses.</div>
     </div>
     <div class="exec"><strong>At A Glance</strong><br>${buildSummary(a)}</div>
-    <div class="card"><h3>Kennel Assignment <button class="info-btn" style="float:right;font-size:1.1rem;" onclick="openAssignKennel()">+</button></h3>
+    ${(a.exposed||[]).length ? `<div class="card" style="border-left:4px solid #e74c3c;"><strong>⚠ Exposed</strong><br>${a.exposed.map(ex => {
+      const left = daysLeft(ex);
+      return `From Ref #${ex.from} (${ex.symptom}) · ${left} day${left!==1?"s":""} left`;
+    }).join("<br>")}</div>` : ""}
+    <div class="card"><h3>Tracking</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn outline" onclick="openCleaningLog()">Log Cleaning</button>
+        <button class="btn outline" onclick="exposureReport()">Exposure Report</button>
+        <button class="btn outline" onclick="showCleaningHistory()">Cleaning History</button>
+        <button class="btn outline" onclick="startPlaytime()">Start Playtime</button>
+        <button class="btn outline" onclick="endPlaytime()">End Playtime</button>
+        <button class="btn outline" onclick="showPlaytimeHistory()">Playtime History</button>
+      </div>
+    </div>
       <div style="margin-top:8px;">Current: ${a.kennelLetter}${a.kennelNum} (${a.section})</div>
       ${cageMates.length ? `<div><strong>Cage mates:</strong> ${cageMates.map(m => `Ref #${m.ref}`).join(", ")}</div>` : ""}
       <div style="margin-top:12px;"><strong>Assignment History</strong></div>
@@ -2676,6 +2834,40 @@ function requestFeature() {
   const body = encodeURIComponent("Hi,\n\nI'd like to request the following feature for Smart Flow:\n\n");
   window.location.href = "mailto:meridianvetcounsel@proton.me?subject=" + subject + "&body=" + body;
 }
+function getCleaningGaps() {
+  const cutoff = Date.now() - 12 * 3600000;
+  const kennels = {};
+  animals.forEach(a => {
+    const k = a.kennelLetter + a.kennelNum;
+    if (!kennels[k]) kennels[k] = 0;
+  });
+  cleaningLog.forEach(e => {
+    if (e.kennel && new Date(e.at).getTime() > cutoff) kennels[e.kennel] = (kennels[e.kennel] || 0) + 1;
+  });
+  return Object.keys(kennels).filter(k => !kennels[k]);
+}
+function showCleaningGaps() {
+  const gaps = getCleaningGaps();
+  const rows = gaps.map(k => `<div style="padding:6px;margin:4px 0;background:#fff3cd;border-radius:4px;">Kennel ${k} – no cleaning in 12h</div>`).join("") || "<p>All kennels cleaned within 12h</p>";
+  document.getElementById("mTitle").textContent = "Cleaning Gaps";
+  document.getElementById("mBody").innerHTML = rows + `<button class="btn outline" style="margin-top:10px;" onclick="closeModal()">Close</button>`;
+  document.getElementById("modal").classList.add("show");
+}
+function exposureReport() {
+  if (!curr) return;
+  const sick = (curr.diagnoses || []).some(d => !d.cleared && /parvo|giardia|uri/i.test(d.name));
+  if (!sick) { alert("No high-risk diagnosis on this pet"); return; }
+  const mates = animals.filter(m => m.kennelLetter === curr.kennelLetter && m.kennelNum === curr.kennelNum && m.ref !== curr.ref);
+  const rows = mates.map(m => `Ref #${m.ref} (${m.breed}) – Kennel ${m.kennelLetter}${m.kennelNum}`).join("<br>") || "No cage mates";
+  document.getElementById("mTitle").textContent = "Exposure Report";
+  document.getElementById("mBody").innerHTML = `
+    <div>Animals that shared kennel with Ref #${curr.ref}:</div>
+    <div style="margin:10px 0;">${rows}</div>
+    <button class="btn" onclick="window.print()">Print Report</button>
+    <button class="btn outline" onclick="closeModal()">Close</button>
+  `;
+  document.getElementById("modal").classList.add("show");
+}
 function showDash() {
   window.scrollTo(0, 0);
   document.getElementById("detailView").style.display = "none";
@@ -2685,6 +2877,18 @@ function showDash() {
   document.getElementById("backBtn").style.display = "none";
   document.getElementById("headerSub").textContent = "";
   curr = null;
+  const exposed = animals.filter(a => (a.exposed||[]).length);
+  const expStrip = document.getElementById("exposureStrip");
+  if (exposed.length) {
+    expStrip.style.display = "block";
+    expStrip.textContent = exposed.length + " animal" + (exposed.length>1?"s":"") + " with recent exposure";
+  } else expStrip.style.display = "none";
+  const gaps = getCleaningGaps();
+  const gapStrip = document.getElementById("cleaningGapStrip");
+  if (gaps.length) {
+    gapStrip.style.display = "block";
+    gapStrip.textContent = gaps.length + " kennel" + (gaps.length>1?"s":"") + " not cleaned in 12h";
+  } else gapStrip.style.display = "none";
   render();
 }
 function printFacility() {
@@ -3114,17 +3318,41 @@ function printChart() {
     { id: "vax", label: "Vaccines & Deworming", checked: true },
     { id: "diag", label: "Diagnoses", checked: true },
     { id: "daily", label: "Daily Record", checked: true },
-    { id: "forms", label: "Forms & Attachments", checked: false },
     { id: "notes", label: "Notes", checked: true }
   ];
   const checks = sections.map(s => `<label style="display:block;margin:6px 0;"><input type="checkbox" class="printSec" value="${s.id}" ${s.checked?"checked":""}> ${s.label}</label>`).join("");
-  document.getElementById("mTitle").textContent = "Select Sections to Print";
-  document.getElementById("mBody").innerHTML = checks + `<button class="btn" onclick="doPrintChart()">Print Selected</button>`;
+  document.getElementById("mTitle").textContent = "Confirm Print";
+  document.getElementById("mBody").innerHTML = `
+    <div style="font-size:0.9rem;margin-bottom:8px;">Select sections to include:</div>
+    ${checks}
+    <button class="btn outline" style="margin-top:10px;" onclick="openManualEdit()">Manual Edit</button>
+    <button class="btn" style="margin-top:10px;" onclick="confirmPrint()">Confirm & Print</button>
+  `;
   document.getElementById("modal").classList.add("show");
 }
-function doPrintChart() {
-  document.getElementById("modal").classList.remove("show");
+function confirmPrint() {
   const selected = Array.from(document.querySelectorAll(".printSec:checked")).map(c => c.value);
+  if (!selected.length) { alert("Select at least one section"); return; }
+  closeModal();
+  doPrintChart(selected);
+}
+function openManualEdit() {
+  if (!curr) return;
+  document.getElementById("mTitle").textContent = "Manual Edit";
+  document.getElementById("mBody").innerHTML = `
+    <textarea id="manualNote" style="width:100%;height:120px;padding:10px;border-radius:8px;" placeholder="Add or correct notes before print">${curr.summary || ""}</textarea>
+    <button class="btn" onclick="saveManualNote()">Save & Return</button>
+  `;
+}
+function saveManualNote() {
+  if (!curr) return;
+  curr.summary = document.getElementById("manualNote").value;
+  saveAnimals();
+  printChart();
+}
+function doPrintChart(selected) {
+  document.getElementById("modal").classList.remove("show");
+  if (!selected) selected = Array.from(document.querySelectorAll(".printSec:checked")).map(c => c.value);
   const a = curr;
   let html = `<div style="font-family:-apple-system,sans-serif;padding:20px;max-width:800px;margin:0 auto;color:#222;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0A3D6E;padding-bottom:12px;margin-bottom:16px;">
